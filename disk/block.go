@@ -17,10 +17,10 @@ var (
 	ErrBadCRC = errors.New("disk: not a valid CRC")
 )
 
-// ReadBlock reads a full or partial block into p from rs. len(p) must be smaller than (bs - crc32Len).
+// readBlock reads a full or partial block into p from rs. len(p) must be smaller than (bs - crc32Len).
 // The checksum of the block is calculated and verified.
 // ErrBadCRC is returned if the checksum is invalid.
-func ReadBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
+func readBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
 	if int64(len(p)) > bs-crc32Len {
 		return 0, ErrPayloadSizeTooLarge
 	}
