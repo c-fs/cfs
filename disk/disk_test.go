@@ -1,10 +1,11 @@
+package disk
 
 import "testing"
 
-func TestBasicReadBlock(t *testing.T) {
+func TestReadBlock(t *testing.T) {
 
 }
 
-func TestBasicWriteBlock(t *testing.T) {
+func TestWriteBlock(t *testing.T) {
 
 }
