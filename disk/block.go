@@ -11,8 +11,8 @@ import (
 var (
 	crc32cTable       = crc32.MakeTable(crc32.Castagnoli)
 	crc32Len          = int64(4)
-	// ErrBadPayloadSize indicates the input payload size is invalid
-	ErrBadPayloadSize = errors.New("disk: bad payload size")
+	// ErrPayloadSizeTooLarge indicates the input payload size is too big
+	ErrPayloadSizeTooLarge = errors.New("disk: bad payload size")
 	// ErrBadCRC indicates there is not CRC can be found in the block
 	ErrBadCRC = errors.New("disk: not a valid CRC")
 )
@@ -22,7 +22,7 @@ var (
 // ErrBadCRC is returned if the checksum is invalid.
 func ReadBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
 	if int64(len(p)) > bs-crc32Len {
-		return 0, ErrBadPayloadSize
+		return 0, ErrPayloadSizeTooLarge
 	}
 	b := make([]byte, crc32Len)
 	rs.Seek(index*bs, os.SEEK_SET)
@@ -55,7 +55,7 @@ func ReadBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
 // len(p) < bs - crc32Len
 func writeBlock(ws io.WriteSeeker, index, bs int64, p []byte) error {
 	if int64(len(p)) > bs-crc32Len {
-		return ErrBadPayloadSize
+		return ErrPayloadSizeTooLarge
 	}
 
 	// seek to the beginning of the block
