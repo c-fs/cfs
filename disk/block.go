@@ -13,35 +13,37 @@ var (
 	crc32Len          = int64(4)
 	// ErrBadPayloadSize indicates the input payload size is invalid
 	ErrBadPayloadSize = errors.New("disk: bad payload size")
-	// ErrInvalidCRC indicates there is not CRC can be found in the block
-	ErrInvalidCRC = errors.New("disk: not a valid CRC")
+	// ErrBadCRC indicates there is not CRC can be found in the block
+	ErrBadCRC = errors.New("disk: not a valid CRC")
 )
 
 // ReadBlock reads a full block into p from rs. len(p) must be smaller than (bs - crc32Len).
 // The checksum of the block is calculated and verified.
-// ErrInvalidCRC is returned if the checksum is invalid.
-func ReadBlock(rs io.ReadSeeker, p []byte, index, bs int64 ) error {
-	if int64(len(p)) != bs-crc32Len {
-		return ErrBadPayloadSize
+// ErrBadCRC is returned if the checksum is invalid.
+func ReadBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
+	if int64(len(p)) > bs-crc32Len {
+		return 0, ErrBadPayloadSize
 	}
-	buf := make([]byte, bs)
+	b := make([]byte, crc32Len)
 	rs.Seek(index*bs, os.SEEK_SET)
-	n, err := rs.Read(buf)
+	n, err := rs.Read(b)
 	if err != nil && err != io.EOF {
-		return err
+		return 0, err
 	}
 	// Cannot read crc
 	if n < 4 {
-		return ErrInvalidCRC
+		return 0, ErrBadCRC
 	}
-	payload := buf[crc32Len:]
-	crc := binary.BigEndian.Uint32(buf[:crc32Len])
+	n, err = rs.Read(p)
+	if err != nil && err != io.EOF {
+		return 0, err
+	}
+	crc := binary.BigEndian.Uint32(b)
 	// Invalid crc
-	if crc != crc32.Checksum(payload, crc32cTable) {
-		return ErrInvalidCRC
+	if crc != crc32.Checksum(p[:n], crc32cTable) {
+		return 0, ErrBadCRC
 	}
-	copy(p, payload)
-	return nil
+	return int64(n) - crc32Len, nil
 }
 
 // writeBlock writes a full or partial block into ws. len(p) must be smaller than (bs - crc32Len).
