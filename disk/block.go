@@ -17,7 +17,7 @@ var (
 	ErrBadCRC = errors.New("disk: not a valid CRC")
 )
 
-// ReadBlock reads a full block into p from rs. len(p) must be smaller than (bs - crc32Len).
+// ReadBlock reads a full or partial block into p from rs. len(p) must be smaller than (bs - crc32Len).
 // The checksum of the block is calculated and verified.
 // ErrBadCRC is returned if the checksum is invalid.
 func ReadBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
@@ -27,17 +27,19 @@ func ReadBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
 	b := make([]byte, crc32Len)
 	rs.Seek(index*bs, os.SEEK_SET)
 	n, err := rs.Read(b)
-	if err != nil && err != io.EOF {
-		return 0, err
-	}
-	// Cannot read crc
-	if n < 4 {
+	// Cannot read full crc
+	if n > 0 && n < 4 {
 		return 0, ErrBadCRC
 	}
+	if err != nil {
+		return 0, err
+	}
+
 	n, err = rs.Read(p)
 	if err != nil && err != io.EOF {
 		return 0, err
 	}
+
 	crc := binary.BigEndian.Uint32(b)
 	// Invalid crc
 	if crc != crc32.Checksum(p[:n], crc32cTable) {
