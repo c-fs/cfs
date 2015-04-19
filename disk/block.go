@@ -35,17 +35,16 @@ func readBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
 		return 0, err
 	}
 
-	n, err = rs.Read(p)
-	if err != nil && err != io.EOF {
-		return 0, err
-	}
 
 	crc := binary.BigEndian.Uint32(b)
+
+	n, err = rs.Read(p)
+
 	// Invalid crc
 	if crc != crc32.Checksum(p[:n], crc32cTable) {
 		return 0, ErrBadCRC
 	}
-	return int64(n) - crc32Len, nil
+	return int64(n) - crc32Len, err
 }
 
 // writeBlock writes a full or partial block into ws. len(p) must be smaller than (bs - crc32Len).
