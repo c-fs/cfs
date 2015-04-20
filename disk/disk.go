@@ -2,15 +2,12 @@ package disk
 
 import (
 	"io"
-	"log"
 	"os"
 )
 
-// WriteAt writes len(p) bytes from p to the file at path at offset off.
-// It returns the number of bytes written from p (0 <= n <= len(p)) and
-// any error encountered that caused the write to stop early.
-// WriteAt must return a non-nil error if it returns n < len(p).
-// TODO(xiang90): []byte or io.reader?
+// WriteAt writes len(p) bytes to the File starting at byte offset off.
+// It returns the number of bytes written and an error, if any. WriteAt
+// returns a non-nil error when n != len(p).
 func WriteAt(path string, p []byte, off int64) (int, error) {
 	// block size
 	bsize := blockSize(path)
@@ -21,65 +18,118 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	flen := getFileLength(f)
 
-	// offset index that starts to write in the next time
-	i := min(off, flen)
+	flen := getFileLength(f)
+	// start index
+	st := min(off, flen)
+	// data to write that starts from the offset
+	data := &buffer{
+		leadingZero: off - st,
+		p:           p,
+	}
+	// index that ends writing
+	end := st + data.size()
+	// has trailing data in file after the end position
+	hasTrailing := end < flen
+
+	stPidx, stPoff := offToPayloadPos(st, psize)
+	endPidx, endPoff := offToPayloadPos(end, psize)
+	// read buffer
+	rbuf := make([]byte, psize)
+	// fast path for writing at one block
+	if stPidx == endPidx {
+		_, err := readBlock(f, rbuf, stPidx, bsize)
+		if err != nil && err != io.EOF {
+			return 0, err
+		}
+		var wbuf []byte
+		if hasTrailing {
+			copy(rbuf[stPoff:endPoff], data.slice(data.size()))
+			wbuf = rbuf
+		} else {
+			wbuf = append(rbuf[:stPoff], data.slice(data.size())...)
+		}
+		err = writeBlock(f, stPidx, bsize, wbuf)
+		if err != nil {
+			return 0, err
+		}
+		return len(p), nil
+	}
+
 	// number of bytes that has written
 	n := 0
-	// index that ends writing
-	end := off + int64(len(p))
-	rbuf := make([]byte, psize)
-	for i < end {
-		pidx := i / psize
-		poff := i - pidx*psize
-		wbuf := make([]byte, 0)
-
-		// read out the head of data in block
-		if poff > 0 {
-			rn, err := readBlock(f, rbuf, pidx, bsize)
-			if err != nil && err != io.EOF {
-				return n, err
-			}
-			if poff < rn {
-				log.Panicf("unexpected insufficient read")
-			}
-			wbuf = append(wbuf, rbuf[:poff]...)
+	// head block
+	if stPoff > 0 {
+		_, err := readBlock(f, rbuf, stPidx, bsize)
+		if err != nil && err != io.EOF {
+			return n, err
 		}
-
-		left := end - i
-		pleft := psize - poff
-		wn := min(left, pleft)
-		var wrtdata []byte
-		if i+wn < off {
-			wrtdata = make([]byte, wn)
-		} else if i > off {
-			wrtdata = p[n : n+int(wn)]
-		} else {
-			wrtdata = append(make([]byte, off-i), p[:i+wn-off]...)
-		}
-		wbuf = append(wbuf, wrtdata...)
-
-		// read out the tail of data in block
-		if poff+wn < psize && end < flen {
-			rn, err := readBlock(f, rbuf, pidx, bsize)
-			if err != nil && err != io.EOF {
-				return n, err
-			}
-			if poff+wn < rn {
-				log.Panicf("unexpected insufficient read")
-			}
-			wbuf = append(wbuf, p[poff+wn:]...)
-		}
-
-		err := writeBlock(f, pidx, bsize, wbuf)
+		wbuf := append(rbuf[:stPoff], data.slice(psize-stPoff)...)
+		err = writeBlock(f, stPidx, bsize, wbuf)
 		if err != nil {
 			return n, err
 		}
-		n += int(wn)
-		i += int64(len(wbuf))
+		stPidx++
+		n += int(psize - stPoff)
+	}
+	// middle blocks
+	for i := stPidx; i < endPidx; i++ {
+		err := writeBlock(f, stPidx, bsize, data.slice(psize))
+		if err != nil {
+			return n, err
+		}
+		n += int(psize)
+	}
+	// tail block
+	if endPoff > 0 {
+		var wbuf []byte
+		if hasTrailing {
+			rn, err := readBlock(f, rbuf, endPidx, bsize)
+			if err != nil && err != io.EOF {
+				return n, err
+			}
+			copy(rbuf[:endPoff], data.slice(endPoff))
+			wbuf = rbuf[:rn]
+		} else {
+			wbuf = data.slice(endPoff)
+		}
+		err := writeBlock(f, stPidx, bsize, wbuf)
+		if err != nil {
+			return n, err
+		}
+		n += int(endPoff)
 	}
 	return n, nil
+}
+
+// buffer represents a byte slice. It starts with leading zeros, and follows
+// with the given data.
+type buffer struct {
+	leadingZero int64
+	p           []byte
+
+	off int64
+}
+
+func (b *buffer) size() int64 { return b.leadingZero + int64(len(b.p)) }
+
+// slice consumes n bytes, moves the cursor, and returns it.
+func (b *buffer) slice(n int64) []byte {
+	lo, hi := b.off, b.off+n
+	b.off += n
+	if hi <= b.leadingZero {
+		return make([]byte, n)
+	} else if lo >= b.leadingZero {
+		return b.p[lo-b.leadingZero : hi-b.leadingZero]
+	} else {
+		return append(make([]byte, b.leadingZero-lo), b.p[:hi-b.leadingZero]...)
+	}
+}
+
+func offToPayloadPos(off, psize int64) (bidx, boff int64) {
+	bidx = off / psize
+	boff = off - bidx*psize
+	return
 }
 
 // blockSize returns the block size of the file at given path.
