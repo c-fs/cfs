@@ -2,8 +2,9 @@ package disk
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
-	"io"
+	"hash/crc32"
 	"os"
 	"path"
 	"strings"
@@ -64,8 +65,19 @@ func TestPartlyReadBlock(t *testing.T) {
 	if n != 6 {
 		t.Errorf("expect get data length = %v got %v", 6, n)
 	}
-	if err != io.EOF {
-		t.Errorf("expect error %v got %v", io.EOF, err)
+	// FIXME do we expect error = io.EOF here?
+	if err != nil {
+		t.Errorf("error = %v", err)
+	}
+}
+
+func TestCRCErrCheck(t *testing.T) {
+	defer os.Remove(tmpTestFile)
+	f := setUpTestFile(20, t)
+	p := make([]byte, 6)
+	_, err := readBlock(f, p, 1, 10)
+	if err != ErrBadCRC {
+		t.Errorf("expect error %v got %v", ErrBadCRC, err)
 	}
 }
 
@@ -105,19 +117,19 @@ func TestReadWriteBlock(t *testing.T) {
 	defer os.Remove(tmpTestFile)
 	for i, tt := range tests {
 		f := setUpTestFile(tt.fileSize, t)
+
+		// write
 		p := make([]byte, tt.writeLen)
 		for i := int64(0); i < tt.writeLen; i++ {
 			p[i] = 'X'
 		}
-
-		// write
 		err := writeBlock(f, tt.index, tt.bs, p)
 		if err != nil {
 			t.Errorf("%d: error = %v", i, err)
 		}
 
-		rp := make([]byte, tt.writeLen)
 		// read
+		rp := make([]byte, tt.writeLen)
 		n, err := readBlock(f, rp, tt.index, tt.bs)
 		if err != nil {
 			t.Errorf("%d: error = %v", i, err)
@@ -129,14 +141,60 @@ func TestReadWriteBlock(t *testing.T) {
 			t.Errorf("%d: expect block data %v got %v", i, p, rp)
 		}
 
-		// TODO check crc
-		// TODO check other bytes in file are not collapsed
+		// check crc
+		b := make([]byte, crc32Len)
+		if _, err := f.Seek(tt.index*tt.bs, os.SEEK_SET); err != nil {
+			t.Errorf("%d: error = %v", i, err)
+		}
+		if _, err := f.Read(b); err != nil {
+			t.Errorf("%d: error = %v", i, err)
+		}
+		crc := binary.BigEndian.Uint32(b)
+		if crc != crc32.Checksum(rp, crc32cTable) {
+			t.Errorf("%d: expect crc %v got %v",
+				i, crc, crc32.Checksum(rp, crc32cTable))
+		}
 
+		// check other bytes in file are not collapsed
+		lastBlockIndex := tt.index*tt.bs - 1
+		nextBlockIndex := (tt.index + 1) * tt.bs
+		b = make([]byte, 1)
+		if lastBlockIndex >= 0 {
+			if _, err := f.Seek(tt.index*tt.bs-1, os.SEEK_SET); err != nil {
+				t.Errorf("%d: error = %v", i, err)
+			}
+			if _, err := f.Read(b); err != nil {
+				t.Errorf("%d: error = %v", i, err)
+			}
+			patternIndex := int(lastBlockIndex) % len(testFilePattern)
+			if b[0] != testFilePattern[patternIndex] {
+				t.Errorf("%d: expect byte %v got %v",
+					i, b[0], testFilePattern[patternIndex])
+			}
+		}
+		if nextBlockIndex < tt.fileSize {
+			_, err = f.Seek((tt.index+1)*tt.bs, os.SEEK_SET)
+			if err != nil {
+				t.Errorf("%d: error = %v", i, err)
+			}
+			_, err = f.Read(b)
+			if err != nil {
+				t.Errorf("%d: error = %v", i, err)
+			}
+			patternIndex := int(nextBlockIndex) % len(testFilePattern)
+			if b[0] != testFilePattern[patternIndex] {
+				t.Errorf("%d: expect byte %v got %v",
+					i, b[0], testFilePattern[patternIndex])
+			}
+		}
+
+		// close file
 		if err = f.Close(); nil != err {
 			t.Fatal("can not close test file: ", err)
 		}
 	}
 
+	// error test
 	for i, tt := range errtests {
 		f := setUpTestFile(tt.fileSize, t)
 		p := make([]byte, tt.writeLen)
