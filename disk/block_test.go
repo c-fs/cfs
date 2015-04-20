@@ -5,18 +5,24 @@ import (
 	"errors"
 	"io"
 	"os"
+	"path"
 	"strings"
 	"testing"
 )
 
 const (
-	tmpTestFile = "/tmp/cfs_disk_block_test"
+	tmpTestFile = "cfs_disk_block_test"
 )
 
+// testFilePattern is used to fill the test file, having a repeat pattern helps
+// on testing writeBlock. We can check the data before/after the block we
+// wrote in is not collapsed
 var testFilePattern = []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g'}
 
 func setUpTestFile(length int64, t *testing.T) *os.File {
-	f, err := os.OpenFile(tmpTestFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
+	f, err := os.OpenFile(
+		path.Join(os.TempDir(), tmpTestFile),
+		os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	if err != nil {
 		t.Fatalf("can not open test file: %v", err)
 		return nil
@@ -42,24 +48,28 @@ func setUpTestFile(length int64, t *testing.T) *os.File {
 }
 
 func TestPartlyReadBlock(t *testing.T) {
+	defer os.Remove(tmpTestFile)
+	// 90 bytes file, block size = 20 bytes
 	f := setUpTestFile(90, t)
+
+	// writeBlock to set a correct CRC
 	p := make([]byte, 6)
-	// write
-	err := writeBlock(f, 8, 10, p)
+	err := writeBlock(f, 4, 20, p)
 	if err != nil {
 		t.Errorf("error = %v", err)
 	}
+	// try to read out a block
 	rp := make([]byte, 16)
 	n, err := readBlock(f, rp, 4, 20)
-	if err != io.EOF {
-		t.Errorf("expect error %v got %v", io.EOF, err)
-	}
 	if n != 6 {
 		t.Errorf("expect get data length = %v got %v", 6, n)
 	}
+	if err != io.EOF {
+		t.Errorf("expect error %v got %v", io.EOF, err)
+	}
 }
 
-func TestBasicReadWriteBlock(t *testing.T) {
+func TestReadWriteBlock(t *testing.T) {
 	tests := []struct {
 		fileSize int64
 		bs       int64
@@ -92,6 +102,7 @@ func TestBasicReadWriteBlock(t *testing.T) {
 		{20, 20, -1, 16, errors.New("invalid argument")},
 	}
 
+	defer os.Remove(tmpTestFile)
 	for i, tt := range tests {
 		f := setUpTestFile(tt.fileSize, t)
 		p := make([]byte, tt.writeLen)
