@@ -30,13 +30,13 @@ func setUpTestFile(length int64, t *testing.T) *os.File {
 			_, err = f.Write(testFilePattern)
 		}
 		if err != nil {
-			t.Fatalf("can not write to test file %v", err)
+			t.Fatalf("can not write to test file: %v", err)
 		}
 		length = length - int64(len(testFilePattern))
 	}
 
 	if err = f.Sync(); nil != err {
-		t.Fatal("can not sync test file: ", err)
+		t.Fatalf("can not sync test file: %v", err)
 	}
 	return f
 }
