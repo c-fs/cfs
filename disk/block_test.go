@@ -72,21 +72,24 @@ func TestPartlyReadBlock(t *testing.T) {
 }
 
 func TestCRCErrCheck(t *testing.T) {
+	tests := []struct {
+		fileSize int64
+		bs       int64
+		index    int64
+	}{
+		// wrong crc
+		{20, 10, 1},
+		// small file (no crc)
+		{2, 10, 0},
+	}
 	defer os.Remove(tmpTestFile)
 	p := make([]byte, 6)
-
-	// wrong crc
-	f := setUpTestFile(20, t)
-	_, err := readBlock(f, p, 1, 10)
-	if err != ErrBadCRC {
-		t.Errorf("expect error %v got %v", ErrBadCRC, err)
-	}
-
-	// small file (no crc)
-	f = setUpTestFile(2, t)
-	_, err = readBlock(f, p, 0, 10)
-	if err != ErrBadCRC {
-		t.Errorf("expect error %v got %v", ErrBadCRC, err)
+	for i, tt := range tests {
+		f := setUpTestFile(tt.fileSize, t)
+		_, err := readBlock(f, p, tt.index, tt.bs)
+		if err != ErrBadCRC {
+			t.Errorf("%d: expect error %v got %v", i, ErrBadCRC, err)
+		}
 	}
 }
 
