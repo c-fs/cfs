@@ -156,23 +156,23 @@ func TestReadWriteBlock(t *testing.T) {
 		}
 
 		// check other bytes in file are not collapsed
-		lastBlockIndex := tt.index*tt.bs - 1
-		nextBlockIndex := (tt.index + 1) * tt.bs
+		prevBlockLastByte := tt.index*tt.bs - 1
+		nextBlockFirstByte := (tt.index + 1) * tt.bs
 		b = make([]byte, 1)
-		if lastBlockIndex >= 0 {
+		if prevBlockLastByte >= 0 {
 			if _, err := f.Seek(tt.index*tt.bs-1, os.SEEK_SET); err != nil {
 				t.Errorf("%d: error = %v", i, err)
 			}
 			if _, err := f.Read(b); err != nil {
 				t.Errorf("%d: error = %v", i, err)
 			}
-			patternIndex := int(lastBlockIndex) % len(testFilePattern)
+			patternIndex := int(prevBlockLastByte) % len(testFilePattern)
 			if b[0] != testFilePattern[patternIndex] {
 				t.Errorf("%d: expect byte %v got %v",
 					i, b[0], testFilePattern[patternIndex])
 			}
 		}
-		if nextBlockIndex < tt.fileSize {
+		if nextBlockFirstByte < tt.fileSize {
 			_, err = f.Seek((tt.index+1)*tt.bs, os.SEEK_SET)
 			if err != nil {
 				t.Errorf("%d: error = %v", i, err)
@@ -181,7 +181,7 @@ func TestReadWriteBlock(t *testing.T) {
 			if err != nil {
 				t.Errorf("%d: error = %v", i, err)
 			}
-			patternIndex := int(nextBlockIndex) % len(testFilePattern)
+			patternIndex := int(nextBlockFirstByte) % len(testFilePattern)
 			if b[0] != testFilePattern[patternIndex] {
 				t.Errorf("%d: expect byte %v got %v",
 					i, b[0], testFilePattern[patternIndex])
