@@ -73,9 +73,18 @@ func TestPartlyReadBlock(t *testing.T) {
 
 func TestCRCErrCheck(t *testing.T) {
 	defer os.Remove(tmpTestFile)
-	f := setUpTestFile(20, t)
 	p := make([]byte, 6)
+
+	// wrong crc
+	f := setUpTestFile(20, t)
 	_, err := readBlock(f, p, 1, 10)
+	if err != ErrBadCRC {
+		t.Errorf("expect error %v got %v", ErrBadCRC, err)
+	}
+
+	// small file (no crc)
+	f = setUpTestFile(2, t)
+	_, err = readBlock(f, p, 0, 10)
 	if err != ErrBadCRC {
 		t.Errorf("expect error %v got %v", ErrBadCRC, err)
 	}
