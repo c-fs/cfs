@@ -21,14 +21,17 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 
 	flen := getFileLength(f)
 	// start index
-	st := min(off, flen)
-	// data to write that starts from the offset
-	data := &buffer{
-		leadingZero: off - st,
-		p:           p,
+	var st int64
+	var data []byte
+	if off <= flen {
+		st = off
+		data = p
+	} else {
+		st = flen
+		data = append(make([]byte, off-flen), data...)
 	}
 	// index that ends writing
-	end := st + data.size()
+	end := st + int64(len(data))
 	// has trailing data in file after the end position
 	hasTrailing := end < flen
 
@@ -44,10 +47,10 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 		}
 		var wbuf []byte
 		if hasTrailing {
-			copy(rbuf[stPoff:endPoff], data.slice(data.size()))
+			copy(rbuf[stPoff:endPoff], data)
 			wbuf = rbuf
 		} else {
-			wbuf = append(rbuf[:stPoff], data.slice(data.size())...)
+			wbuf = append(rbuf[:stPoff], data...)
 		}
 		err = writeBlock(f, stPidx, bsize, wbuf)
 		if err != nil {
@@ -64,7 +67,8 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 		if err != nil && err != io.EOF {
 			return n, err
 		}
-		wbuf := append(rbuf[:stPoff], data.slice(psize-stPoff)...)
+		wbuf := append(rbuf[:stPoff], data[:psize-stPoff]...)
+		data = data[psize-stPoff:]
 		err = writeBlock(f, stPidx, bsize, wbuf)
 		if err != nil {
 			return n, err
@@ -74,7 +78,8 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 	}
 	// middle blocks
 	for i := stPidx; i < endPidx; i++ {
-		err := writeBlock(f, stPidx, bsize, data.slice(psize))
+		err := writeBlock(f, stPidx, bsize, data[:psize])
+		data = data[psize:]
 		if err != nil {
 			return n, err
 		}
@@ -88,10 +93,10 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 			if err != nil && err != io.EOF {
 				return n, err
 			}
-			copy(rbuf[:endPoff], data.slice(endPoff))
+			copy(rbuf[:endPoff], data[:endPoff])
 			wbuf = rbuf[:rn]
 		} else {
-			wbuf = data.slice(endPoff)
+			wbuf = data[:endPoff]
 		}
 		err := writeBlock(f, stPidx, bsize, wbuf)
 		if err != nil {
@@ -100,30 +105,6 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 		n += int(endPoff)
 	}
 	return n, nil
-}
-
-// buffer represents a byte slice. It starts with leading zeros, and follows
-// with the given data.
-type buffer struct {
-	leadingZero int64
-	p           []byte
-
-	off int64
-}
-
-func (b *buffer) size() int64 { return b.leadingZero + int64(len(b.p)) }
-
-// slice consumes n bytes, moves the cursor, and returns it.
-func (b *buffer) slice(n int64) []byte {
-	lo, hi := b.off, b.off+n
-	b.off += n
-	if hi <= b.leadingZero {
-		return make([]byte, n)
-	} else if lo >= b.leadingZero {
-		return b.p[lo-b.leadingZero : hi-b.leadingZero]
-	} else {
-		return append(make([]byte, b.leadingZero-lo), b.p[:hi-b.leadingZero]...)
-	}
 }
 
 func offToPayloadPos(off, psize int64) (bidx, boff int64) {
