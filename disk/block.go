@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	crc32cTable       = crc32.MakeTable(crc32.Castagnoli)
-	crc32Len          = int64(4)
+	crc32cTable = crc32.MakeTable(crc32.Castagnoli)
+	crc32Len    = int64(4)
 	// ErrPayloadSizeTooLarge indicates the input payload size is too big
 	ErrPayloadSizeTooLarge = errors.New("disk: bad payload size")
 	// ErrBadCRC indicates there is not CRC can be found in the block
@@ -25,7 +25,12 @@ func readBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
 		return 0, ErrPayloadSizeTooLarge
 	}
 	b := make([]byte, crc32Len)
-	rs.Seek(index*bs, os.SEEK_SET)
+
+	_, err := rs.Seek(index*bs, os.SEEK_SET)
+	if err != nil {
+		return 0, err
+	}
+
 	n, err := rs.Read(b)
 	// Cannot read full crc
 	if n > 0 && n < 4 {
@@ -35,7 +40,6 @@ func readBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
 		return 0, err
 	}
 
-
 	crc := binary.BigEndian.Uint32(b)
 
 	n, err = rs.Read(p)
@@ -44,7 +48,7 @@ func readBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
 	if crc != crc32.Checksum(p[:n], crc32cTable) {
 		return 0, ErrBadCRC
 	}
-	return int64(n) - crc32Len, err
+	return int64(n), err
 }
 
 // writeBlock writes a full or partial block into ws. len(p) must be smaller than (bs - crc32Len).
@@ -60,7 +64,7 @@ func writeBlock(ws io.WriteSeeker, index, bs int64, p []byte) error {
 	// seek to the beginning of the block
 	_, err := ws.Seek(index*bs, os.SEEK_SET)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	// write crc32c
