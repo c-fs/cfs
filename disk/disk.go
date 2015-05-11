@@ -2,6 +2,7 @@ package disk
 
 import (
 	"io"
+	"log"
 	"os"
 )
 
@@ -24,93 +25,62 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 	var st int64
 	var data []byte
 	if off <= flen {
-		st = off
-		data = p
+		st, data = off, p
 	} else {
-		st = flen
-		data = append(make([]byte, off-flen), data...)
+		st, data = flen, append(make([]byte, off-flen), p...)
 	}
 	// index that ends writing
 	end := st + int64(len(data))
-	// has trailing data in file after the end position
-	hasTrailing := end < flen
 
-	stIdx, stOff := offToPayloadPos(st, psize)
-	endIdx, endOff := offToPayloadPos(end, psize)
-	// read buffer
-	rbuf := make([]byte, psize)
-	// fast path for writing at one block
-	if stIdx == endIdx {
-		_, err := readBlock(f, rbuf, stIdx, bsize)
-		if err != nil && err != io.EOF {
-			return 0, err
-		}
-		var wbuf []byte
-		if hasTrailing {
-			copy(rbuf[stOff:endOff], data)
-			wbuf = rbuf
-		} else {
-			wbuf = append(rbuf[:stOff], data...)
-		}
-		err = writeBlock(f, stIdx, bsize, wbuf)
-		if err != nil {
-			return 0, err
-		}
-		return len(p), nil
-	}
-
-	// number of bytes that has written
 	n := 0
-	// head block
-	if stOff > 0 {
-		_, err := readBlock(f, rbuf, stIdx, bsize)
-		if err != nil && err != io.EOF {
-			return n, err
-		}
-		wbuf := append(rbuf[:stOff], data[:psize-stOff]...)
-		data = data[psize-stOff:]
-		err = writeBlock(f, stIdx, bsize, wbuf)
-		if err != nil {
-			return n, err
-		}
-		stIdx++
-		n += int(psize - stOff)
-	}
-	// middle blocks
+	stIdx, endIdx := st/psize, end/psize
 	for i := stIdx; i < endIdx; i++ {
-		err := writeBlock(f, stIdx, bsize, data[:psize])
-		data = data[psize:]
-		if err != nil {
-			return n, err
+		// length of data to write this time
+		var l int64
+		// the block offset
+		head := off - i*psize
+		if l = psize - head; l > int64(len(data)) {
+			l = int64(len(data))
 		}
-		n += int(psize)
-	}
-	// tail block
-	if endOff > 0 {
-		var wbuf []byte
-		if hasTrailing {
-			rn, err := readBlock(f, rbuf, endIdx, bsize)
-			if err != nil && err != io.EOF {
+		if head == 0 {
+			if err := writeBlock(f, i, bsize, data[:l]); err != nil {
 				return n, err
 			}
-			copy(rbuf[:endOff], data[:endOff])
-			wbuf = rbuf[:rn]
 		} else {
-			wbuf = data[:endOff]
+			if err := fillBlock(f, i, head, bsize, data[:l]); err != nil {
+				return n, err
+			}
 		}
-		err := writeBlock(f, stIdx, bsize, wbuf)
-		if err != nil {
-			return n, err
-		}
-		n += int(endOff)
+		n += int(l)
+		off += l
+		data = data[l:]
 	}
+
 	return n, nil
 }
 
-func offToPayloadPos(off, psize int64) (idx, off int64) {
-	idx = off / psize
-	off = off - idx*psize
-	return idx, off
+// fillBlock fills the partial block starting from the given offset with the
+// given data. It first reads out the block, fills in the given data, and
+// writes the block back.
+// The given index and offset should locate an existing point in the file.
+// The given bsize indicates the size of each block.
+// The given data should all be in the target block, and not exceed the
+// block boundary.
+func fillBlock(f *os.File, index, offset, bsize int64, data []byte) error {
+	buf := make([]byte, bsize-crc32Len)
+	n, err := readBlock(f, buf, index, bsize)
+	if err != nil && err != io.EOF {
+		return err
+	}
+	switch {
+	case n < offset:
+		log.Panicf("offset should be not bigger than file size")
+	case n < offset+int64(len(data)):
+		buf = append(buf[:offset], data...)
+	default:
+		copy(buf[offset:offset+int64(len(data))], data)
+	}
+	return writeBlock(f, index, bsize, buf)
 }
 
 // blockSize returns the block size of the file at given path.
