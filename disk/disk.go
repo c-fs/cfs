@@ -35,24 +35,24 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 	// has trailing data in file after the end position
 	hasTrailing := end < flen
 
-	stPidx, stPoff := offToPayloadPos(st, psize)
-	endPidx, endPoff := offToPayloadPos(end, psize)
+	stIdx, stOff := offToPayloadPos(st, psize)
+	endIdx, endOff := offToPayloadPos(end, psize)
 	// read buffer
 	rbuf := make([]byte, psize)
 	// fast path for writing at one block
-	if stPidx == endPidx {
-		_, err := readBlock(f, rbuf, stPidx, bsize)
+	if stIdx == endIdx {
+		_, err := readBlock(f, rbuf, stIdx, bsize)
 		if err != nil && err != io.EOF {
 			return 0, err
 		}
 		var wbuf []byte
 		if hasTrailing {
-			copy(rbuf[stPoff:endPoff], data)
+			copy(rbuf[stOff:endOff], data)
 			wbuf = rbuf
 		} else {
-			wbuf = append(rbuf[:stPoff], data...)
+			wbuf = append(rbuf[:stOff], data...)
 		}
-		err = writeBlock(f, stPidx, bsize, wbuf)
+		err = writeBlock(f, stIdx, bsize, wbuf)
 		if err != nil {
 			return 0, err
 		}
@@ -62,23 +62,23 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 	// number of bytes that has written
 	n := 0
 	// head block
-	if stPoff > 0 {
-		_, err := readBlock(f, rbuf, stPidx, bsize)
+	if stOff > 0 {
+		_, err := readBlock(f, rbuf, stIdx, bsize)
 		if err != nil && err != io.EOF {
 			return n, err
 		}
-		wbuf := append(rbuf[:stPoff], data[:psize-stPoff]...)
-		data = data[psize-stPoff:]
-		err = writeBlock(f, stPidx, bsize, wbuf)
+		wbuf := append(rbuf[:stOff], data[:psize-stOff]...)
+		data = data[psize-stOff:]
+		err = writeBlock(f, stIdx, bsize, wbuf)
 		if err != nil {
 			return n, err
 		}
-		stPidx++
-		n += int(psize - stPoff)
+		stIdx++
+		n += int(psize - stOff)
 	}
 	// middle blocks
-	for i := stPidx; i < endPidx; i++ {
-		err := writeBlock(f, stPidx, bsize, data[:psize])
+	for i := stIdx; i < endIdx; i++ {
+		err := writeBlock(f, stIdx, bsize, data[:psize])
 		data = data[psize:]
 		if err != nil {
 			return n, err
@@ -86,31 +86,31 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 		n += int(psize)
 	}
 	// tail block
-	if endPoff > 0 {
+	if endOff > 0 {
 		var wbuf []byte
 		if hasTrailing {
-			rn, err := readBlock(f, rbuf, endPidx, bsize)
+			rn, err := readBlock(f, rbuf, endIdx, bsize)
 			if err != nil && err != io.EOF {
 				return n, err
 			}
-			copy(rbuf[:endPoff], data[:endPoff])
+			copy(rbuf[:endOff], data[:endOff])
 			wbuf = rbuf[:rn]
 		} else {
-			wbuf = data[:endPoff]
+			wbuf = data[:endOff]
 		}
-		err := writeBlock(f, stPidx, bsize, wbuf)
+		err := writeBlock(f, stIdx, bsize, wbuf)
 		if err != nil {
 			return n, err
 		}
-		n += int(endPoff)
+		n += int(endOff)
 	}
 	return n, nil
 }
 
-func offToPayloadPos(off, psize int64) (bidx, boff int64) {
-	bidx = off / psize
-	boff = off - bidx*psize
-	return
+func offToPayloadPos(off, psize int64) (idx, off int64) {
+	idx = off / psize
+	off = off - idx*psize
+	return idx, off
 }
 
 // blockSize returns the block size of the file at given path.
