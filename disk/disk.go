@@ -19,6 +19,7 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	defer f.Close()
 
 	flen := getFileLength(f)
 	// start index
