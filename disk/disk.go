@@ -35,28 +35,39 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 
 	n := 0
 	stIdx, endIdx := st/psize, end/psize
-	for i := stIdx; i < endIdx; i++ {
-		// length of data to write this time
-		var l int64
-		// the block offset
-		head := off - i*psize
-		if l = psize - head; l > int64(len(data)) {
-			l = int64(len(data))
+	stOff, endOff := st-stIdx*psize, end-endIdx*psize
+	// fast path for writing at one block
+	if stIdx == endIdx {
+		if err := fillBlock(f, stIdx, stOff, bsize, data); err != nil {
+			return 0, err
 		}
-		if head == 0 {
-			if err := writeBlock(f, i, bsize, data[:l]); err != nil {
-				return n, err
-			}
-		} else {
-			if err := fillBlock(f, i, head, bsize, data[:l]); err != nil {
-				return n, err
-			}
-		}
-		n += int(l)
-		off += l
-		data = data[l:]
+		return len(data), nil
 	}
-
+	// head block
+	if stOff > 0 {
+		if err := fillBlock(f, stIdx, stOff, bsize, data[:psize-stOff]); err != nil {
+			return n, err
+		}
+		data = data[psize-stOff:]
+		n += int(psize - stOff)
+		stIdx++
+	}
+	// middle blocks
+	for i := stIdx; i < endIdx; i++ {
+		err := writeBlock(f, i, bsize, data[:psize])
+		if err != nil {
+			return n, err
+		}
+		data = data[psize:]
+		n += int(psize)
+	}
+	// tail block
+	if endOff > 0 {
+		if err := fillBlock(f, endIdx, 0, bsize, data); err != nil {
+			return n, err
+		}
+		n += len(data)
+	}
 	return n, nil
 }
 
