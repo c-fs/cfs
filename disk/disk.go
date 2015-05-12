@@ -24,11 +24,14 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 	flen := getFileLength(f)
 	// start index
 	var st int64
+	var padding int
 	var data []byte
 	if off <= flen {
-		st, data = off, p
+		st, padding = off, 0
+		data = p
 	} else {
-		st, data = flen, append(make([]byte, off-flen), p...)
+		st, padding = flen, int(off-flen)
+		data = append(make([]byte, padding), p...)
 	}
 	// index that ends writing
 	end := st + int64(len(data))
@@ -41,12 +44,13 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 		if err := fillBlock(f, stIdx, stOff, bsize, data); err != nil {
 			return 0, err
 		}
-		return len(data), nil
+		n += len(data)
+		return max(n-padding, 0), nil
 	}
 	// head block
 	if stOff > 0 {
 		if err := fillBlock(f, stIdx, stOff, bsize, data[:psize-stOff]); err != nil {
-			return n, err
+			return max(n-padding, 0), err
 		}
 		data = data[psize-stOff:]
 		n += int(psize - stOff)
@@ -56,7 +60,7 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 	for i := stIdx; i < endIdx; i++ {
 		err := writeBlock(f, i, bsize, data[:psize])
 		if err != nil {
-			return n, err
+			return max(n-padding, 0), err
 		}
 		data = data[psize:]
 		n += int(psize)
@@ -64,11 +68,11 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 	// tail block
 	if endOff > 0 {
 		if err := fillBlock(f, endIdx, 0, bsize, data); err != nil {
-			return n, err
+			return max(n-padding, 0), err
 		}
 		n += len(data)
 	}
-	return n, nil
+	return max(n-padding, 0), nil
 }
 
 // fillBlock fills the partial block starting from the given offset with the
@@ -107,4 +111,11 @@ func getFileLength(f *os.File) int64 {
 		return 0
 	}
 	return fi.Size()
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
