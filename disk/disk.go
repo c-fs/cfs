@@ -38,13 +38,13 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 		st, padding = flen, int(off-flen)
 		data = append(make([]byte, padding), p...)
 	}
-	// index that ends writing
-	end := st + int64(len(data)) - 1
+	// index that follows the last written byte
+	end := st + int64(len(data))
 
 	n := 0
 	stIdx, endIdx := st/psize, end/psize
 	stOff, endOff := st-stIdx*psize, end-endIdx*psize
-	// fast path for writing at one block
+	// fast path for writing at one non-full block
 	if stIdx == endIdx {
 		if err := fillBlock(f, stIdx, stOff, bsize, data); err != nil {
 			return 0, err
