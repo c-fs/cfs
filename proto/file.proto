@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package proto;
+
+service cfs {
+    rpc Write(WriteRequest) returns (WriteReply);
+}
+
+
+// PathError records an error and the operation and file path that caused it.
+message PathError {
+    optional string op = 1;
+    optional string path = 2;
+    optional string error = 3;
+}
+
+// SyscallError records an error from a specific system call.
+message SyscallError {
+    optional string syscall = 1;
+    optional string error = 2;
+}
+
+message Error {
+    oneof error {
+        PathError pathErr = 1;
+        SyscallError sysErr = 2;
+    }
+}
+
+// Write writes len(b) bytes from the given offset. It returns the number
+// of bytes written and an error, if any.
+// Write returns an error when n != len(b).
+message WriteRequest {
+    optional string name = 1;
+    optional int64 offset = 2;
+    optional bytes data = 3;
+    
+    optional bool append = 4;
+}
+
+message WriteReply {
+    optional Error error = 1;
+    optional int64 bytes_written = 2;
+}
