@@ -10,12 +10,17 @@ import (
 // It returns the number of bytes written and an error, if any. WriteAt
 // returns a non-nil error when n != len(p).
 func WriteAt(path string, p []byte, off int64) (int, error) {
+	// nil or zero length payload
+	if len(p) == 0 {
+		return 0, nil
+	}
+
 	// block size
 	bsize := blockSize(path)
 	// payload size
 	psize := bsize - crc32Len
 
-	f, err := os.OpenFile(path, os.O_WRONLY, 0600)
+	f, err := os.OpenFile(path, os.O_RDWR, 0600)
 	if err != nil {
 		return 0, err
 	}
@@ -34,7 +39,7 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 		data = append(make([]byte, padding), p...)
 	}
 	// index that ends writing
-	end := st + int64(len(data))
+	end := st + int64(len(data)) - 1
 
 	n := 0
 	stIdx, endIdx := st/psize, end/psize
