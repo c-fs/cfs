@@ -6,6 +6,45 @@ import (
 	"os"
 )
 
+// ReadAt reads up to len(p) bytes starting at byte offset off
+// from the File into p.
+// It returns the number of bytes read and an error, if any.
+func ReadAt(path string, p []byte, off int64) (int, error) {
+	// block size
+	bsize := blockSize(path)
+	// payload size
+	psize := bsize - crc32Len
+
+	f, err := os.OpenFile(path, os.O_RDONLY, 0600)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+
+	stIdx := off/psize
+	stOff := off-stIdx*psize
+	// how many bytes have been read
+	read := 0
+	for {
+		buf := make([]byte, bsize-crc32Len)
+		n, err := readBlock(f, buf, stIdx, bsize)
+		// If the read starts with a non-aligend position,
+		// only copy partial block
+		copied := copy(p, buf[stOff:n])
+		stOff = 0
+		// We just copied some data into p, shrink p
+		p = p[copied:]
+		// We want to exit the loop for 3 cases:
+		// 1. There is an error reading block
+		// 2. We read a partial block -- reach the end of the file
+		// 3. We can't copy into p anymore -- p is filled up
+		if err != nil || n < bsize-crc32Len || copied == 0 {
+			return read + copied, err
+		}
+		read += copied
+	}
+}
+
 // WriteAt writes len(p) bytes to the File starting at byte offset off.
 // It returns the number of bytes written and an error, if any. WriteAt
 // returns a non-nil error when n != len(p).
