@@ -20,7 +20,7 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 	// payload size
 	psize := bsize - crc32Len
 
-	f, err := os.OpenFile(path, os.O_RDWR, 0600)
+	f, err := os.OpenFile(path, os.O_CREATE | os.O_RDWR, 0600)
 	if err != nil {
 		return 0, err
 	}
