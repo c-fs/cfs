@@ -100,6 +100,7 @@ func fillBlock(f *os.File, index, offset, bsize int64, data []byte) error {
 		buf = append(buf[:offset], data...)
 	default:
 		copy(buf[offset:offset+int64(len(data))], data)
+		buf = buf[:n]
 	}
 	return writeBlock(f, index, bsize, buf)
 }
