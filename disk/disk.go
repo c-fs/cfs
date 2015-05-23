@@ -26,25 +26,25 @@ func WriteAt(path string, p []byte, off int64) (int, error) {
 	}
 	defer f.Close()
 
-	flen := getFileLength(f)
+	dlen := getDataLength(f, bsize)
 	// start index
 	var st int64
 	var padding int
 	var data []byte
-	if off <= flen {
+	if off <= dlen {
 		st, padding = off, 0
 		data = p
 	} else {
-		st, padding = flen, int(off-flen)
+		st, padding = dlen, int(off-dlen)
 		data = append(make([]byte, padding), p...)
 	}
-	// index that ends writing
-	end := st + int64(len(data)) - 1
+	// index that follows the last written byte
+	end := st + int64(len(data))
 
 	n := 0
 	stIdx, endIdx := st/psize, end/psize
 	stOff, endOff := st-stIdx*psize, end-endIdx*psize
-	// fast path for writing at one block
+	// fast path for writing at one non-full block
 	if stIdx == endIdx {
 		if err := fillBlock(f, stIdx, stOff, bsize, data); err != nil {
 			return 0, err
@@ -110,12 +110,14 @@ func blockSize(path string) int64 {
 	return 4096
 }
 
-func getFileLength(f *os.File) int64 {
+func getDataLength(f *os.File, bsize int64) int64 {
 	fi, err := f.Stat()
 	if err != nil {
 		return 0
 	}
-	return fi.Size()
+	s := fi.Size()
+	blockNum := (s + bsize - 1) / bsize
+	return s - blockNum*crc32Len
 }
 
 func max(a, b int) int {
