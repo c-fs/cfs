@@ -14,6 +14,8 @@ It has these top-level messages:
 	Error
 	WriteRequest
 	WriteReply
+	ReadRequest
+	ReadReply
 */
 package proto
 
@@ -105,6 +107,36 @@ func (m *WriteReply) GetError() *Error {
 	return nil
 }
 
+// Read reads up to length bytes. The checksum of the data must match the exp_checksum if given, or an error is returned.
+type ReadRequest struct {
+	Name        string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Offset      int64  `protobuf:"varint,2,opt,name=offset" json:"offset,omitempty"`
+	Length      int64  `protobuf:"varint,3,opt,name=length" json:"length,omitempty"`
+	ExpChecksum uint32 `protobuf:"fixed32,4,opt,name=exp_checksum" json:"exp_checksum,omitempty"`
+}
+
+func (m *ReadRequest) Reset()         { *m = ReadRequest{} }
+func (m *ReadRequest) String() string { return proto1.CompactTextString(m) }
+func (*ReadRequest) ProtoMessage()    {}
+
+type ReadReply struct {
+	Error     *Error `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
+	BytesRead int64  `protobuf:"varint,2,opt,name=bytes_read" json:"bytes_read,omitempty"`
+	Data      []byte `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
+	Checksum  uint32 `protobuf:"fixed32,4,opt,name=checksum" json:"checksum,omitempty"`
+}
+
+func (m *ReadReply) Reset()         { *m = ReadReply{} }
+func (m *ReadReply) String() string { return proto1.CompactTextString(m) }
+func (*ReadReply) ProtoMessage()    {}
+
+func (m *ReadReply) GetError() *Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
 func init() {
 }
 
@@ -112,6 +144,7 @@ func init() {
 
 type CfsClient interface {
 	Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteReply, error)
+	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error)
 }
 
 type cfsClient struct {
@@ -131,22 +164,44 @@ func (c *cfsClient) Write(ctx context.Context, in *WriteRequest, opts ...grpc.Ca
 	return out, nil
 }
 
+func (c *cfsClient) Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error) {
+	out := new(ReadReply)
+	err := grpc.Invoke(ctx, "/proto.cfs/Read", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Cfs service
 
 type CfsServer interface {
 	Write(context.Context, *WriteRequest) (*WriteReply, error)
+	Read(context.Context, *ReadRequest) (*ReadReply, error)
 }
 
 func RegisterCfsServer(s *grpc.Server, srv CfsServer) {
 	s.RegisterService(&_Cfs_serviceDesc, srv)
 }
 
-func _Cfs_Write_Handler(srv interface{}, ctx context.Context, buf []byte) (interface{}, error) {
+func _Cfs_Write_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
 	in := new(WriteRequest)
-	if err := proto1.Unmarshal(buf, in); err != nil {
+	if err := codec.Unmarshal(buf, in); err != nil {
 		return nil, err
 	}
 	out, err := srv.(CfsServer).Write(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Cfs_Read_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(ReadRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CfsServer).Read(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -160,6 +215,10 @@ var _Cfs_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Write",
 			Handler:    _Cfs_Write_Handler,
+		},
+		{
+			MethodName: "Read",
+			Handler:    _Cfs_Read_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},
