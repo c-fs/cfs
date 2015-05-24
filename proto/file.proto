@@ -4,6 +4,7 @@ package proto;
 
 service cfs {
     rpc Write(WriteRequest) returns (WriteReply);
+    rpc Read(ReadRequest) returns (ReadReply);
 }
 
 
@@ -42,3 +43,19 @@ message WriteReply {
     optional Error error = 1;
     optional int64 bytes_written = 2;
 }
+
+// Read reads up to length bytes. The checksum of the data must match the exp_checksum if given, or an error is returned.
+message ReadRequest {
+    optional string name = 1;
+    optional int64 offset = 2;
+    optional int64 length = 3;
+    optional fixed32 exp_checksum = 4;
+}
+
+message ReadReply {
+    optional Error error = 1;
+    optional int64 bytes_read = 2;
+    optional bytes data = 3;
+    optional fixed32 checksum = 4;
+}
+
