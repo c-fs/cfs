@@ -1,5 +1,3 @@
-#cfs
-
 ## Overview
 cfs (cloud file system) is a low-level filesystem interface for building the cloud. cfs is not a distributed file system. It is designed to be the lowest building block of cloud infrastructure that is available on all machines. The design goal of cfs is reliability, simplicity and usability.
 
