@@ -5,6 +5,8 @@ cfs (cloud file system) is a low-level filesystem interface for building the clo
 
 pre-alpha
 
+We will **BREAK** everything (data format, API, command line tool, etc.) before before reaching 1.0.
+
 ## Play with cfs
 
 ### Run Server
