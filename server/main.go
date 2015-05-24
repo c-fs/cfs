@@ -18,7 +18,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("server: failed to listen: %v", err)
 	}
+
+	cfs := NewServer()
+	err = cfs.AddDisk("cfs0", "./cfs0000")
+	if err != nil {
+		log.Fatalf("server: failed to add disk (%v)", err)
+	}
+
 	s := grpc.NewServer()
-	pb.RegisterCfsServer(s, &server{})
+	pb.RegisterCfsServer(s, cfs)
 	s.Serve(lis)
 }
