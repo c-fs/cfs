@@ -4,25 +4,38 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 )
+
+// TODO: interface?
+type Disk struct {
+	// Name is the name of the disk.
+	Name string
+	// Root is the root path of the disk
+	// Usually it is the mount point of a disk or a directory
+	// under the mount point.
+	Root string
+}
 
 // ReadAt reads up to len(p) bytes starting at byte offset off
 // from the File into p.
 // It returns the number of bytes read and an error, if any.
-func ReadAt(path string, p []byte, off int64) (int, error) {
+func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
+	name = path.Join(d.Root, name)
+
 	// block size
-	bsize := blockSize(path)
+	bsize := blockSize(name)
 	// payload size
 	psize := bsize - crc32Len
 
-	f, err := os.OpenFile(path, os.O_RDONLY, 0600)
+	f, err := os.OpenFile(name, os.O_RDONLY, 0600)
 	if err != nil {
 		return 0, err
 	}
 	defer f.Close()
 
-	stIdx := off/psize
-	stOff := off-stIdx*psize
+	stIdx := off / psize
+	stOff := off - stIdx*psize
 	// how many bytes have been read
 	read := 0
 	for {
@@ -48,18 +61,20 @@ func ReadAt(path string, p []byte, off int64) (int, error) {
 // WriteAt writes len(p) bytes to the File starting at byte offset off.
 // It returns the number of bytes written and an error, if any. WriteAt
 // returns a non-nil error when n != len(p).
-func WriteAt(path string, p []byte, off int64) (int, error) {
+func (d *Disk) WriteAt(name string, p []byte, off int64) (int, error) {
+	name = path.Join(d.Root, name)
+
 	// nil or zero length payload
 	if len(p) == 0 {
 		return 0, nil
 	}
 
 	// block size
-	bsize := blockSize(path)
+	bsize := blockSize(name)
 	// payload size
 	psize := bsize - crc32Len
 
-	f, err := os.OpenFile(path, os.O_CREATE | os.O_RDWR, 0600)
+	f, err := os.OpenFile(name, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
 		return 0, err
 	}
@@ -145,7 +160,7 @@ func fillBlock(f *os.File, index, offset, bsize int64, data []byte) error {
 }
 
 // blockSize returns the block size of the file at given path.
-func blockSize(path string) int64 {
+func blockSize(name string) int64 {
 	// TODO (xiang90): implement it
 	return 4096
 }
