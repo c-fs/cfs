@@ -42,6 +42,7 @@ func ReadAt(path string, p []byte, off int64) (int, error) {
 			return read + copied, err
 		}
 		read += copied
+		stIdx++
 	}
 }
 
