@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/c-fs/cfs/disk"
 	pb "github.com/c-fs/cfs/proto"
@@ -17,19 +16,6 @@ type server struct {
 
 func NewServer() *server {
 	return &server{disks: make(map[string]*disk.Disk)}
-}
-
-func (s *server) Disk(name string) *disk.Disk {
-	return s.disks[name]
-}
-
-func (s *server) AddDisk(name, root string) error {
-	s.disks[name] = &disk.Disk{Name: name, Root: root}
-	err := os.MkdirAll(root, 0700)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (s *server) Write(ctx context.Context, req *pb.WriteRequest) (*pb.WriteReply, error) {
