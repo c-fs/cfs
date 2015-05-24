@@ -14,10 +14,14 @@ const (
 )
 
 func main() {
+	log.Printf("server: starting server...")
+
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("server: failed to listen: %v", err)
 	}
+
+	log.Printf("server: listening on %s", port)
 
 	cfs := NewServer()
 	err = cfs.AddDisk("cfs0", "./cfs0000")
@@ -27,5 +31,6 @@ func main() {
 
 	s := grpc.NewServer()
 	pb.RegisterCfsServer(s, cfs)
+	log.Printf("server: ready to serve clients")
 	s.Serve(lis)
 }
