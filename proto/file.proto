@@ -59,3 +59,44 @@ message ReadReply {
     optional fixed32 checksum = 4;
 }
 
+message ReconstructSrc {
+    optional string remote = 1;          // remote server (10.10.0.1:15524)
+    optional string name = 2;
+}
+
+message ReconstructDst {
+    // The destination should always be local server.
+    optional string name = 1;
+}
+
+// http://web.eecs.utk.edu/~plank/plank/papers/2013-02-11-FAST-Tutorial.pdf
+// https://www.usenix.org/legacy/events/fast09/tech/full_papers/plank/plank_html/
+// Optimized for Cauchy Reed-Solomon (CRS) Codes, but should also be applied to 
+// RAID5 and RAID6
+message ReconstructRequest {
+    repeated ReconstructSrc srcs = 1;
+    repeated ReconstructDst dsts = 2;
+
+    // each src has multiple strips. the length of src must be
+    // a multiply of stripe_size or it should be zero filled.
+    //
+    // a strip (also called block) is partitioned into w packets
+    // Invariant: strip_size = packet_size * w
+    // w MUST be in the range [1, 32]
+    //
+    // https://www.usenix.org/legacy/events/fast09/tech/full_papers/plank/plank_html Section 2.2
+    optional int32 strip_size = 3;
+    optional int32 packet_size = 4;
+    optional int32 w = 5;
+
+    // wk * wn matrix of bits
+    // k is the number of sources, n is the number of dests.
+    // bit_matrix[i][j] = i * k * w + j
+    // TODO: make this a dense bytes array and each bytes contains
+    // 8 bits.
+    optional int32 bit_matrix = 6;
+}
+
+message ReconstructReply {
+    optional Error error = 1;
+}
