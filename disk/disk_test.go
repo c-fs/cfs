@@ -1,6 +1,7 @@
 package disk
 
 import (
+	"bytes"
 	"os"
 	"path"
 	"testing"
@@ -13,7 +14,8 @@ func fillPattern(buf []byte, fillLen int64) {
 }
 
 func setUpDiskTestFile(length int64, blockSize int64, t *testing.T) (string, *os.File) {
-	fileName := path.Join(os.TempDir(), tmpTestFile)
+	fileRoot := os.TempDir()
+	fileName := path.Join(fileRoot, tmpTestFile)
 	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	if err != nil {
 		t.Fatalf("can not open test file: %v", err)
@@ -40,14 +42,10 @@ func setUpDiskTestFile(length int64, blockSize int64, t *testing.T) (string, *os
 	if err = f.Sync(); nil != err {
 		t.Fatalf("can not sync test file: %v", err)
 	}
-	return fileName, f
+	return fileRoot, f
 }
 
-func TestReadBlock(t *testing.T) {
-	// TODO (yutongp): add ReadAt test
-}
-
-func TestWriteBlock(t *testing.T) {
+func TestReadWriteDisk(t *testing.T) {
 	tests := []struct {
 		dataSize  int64
 		blockSize int64
@@ -88,41 +86,65 @@ func TestWriteBlock(t *testing.T) {
 
 	defer os.Remove(tmpTestFile)
 	for i, tt := range tests {
-		filePath, f := setUpDiskTestFile(tt.dataSize, tt.blockSize, t)
+		fileRoot, f := setUpDiskTestFile(tt.dataSize, tt.blockSize, t)
+		d := &Disk{Name: "", Root: fileRoot}
 		originalDSize := getDataLength(f, tt.blockSize)
 		expectedDSize := int64(max(int(originalDSize), int(tt.offSet+tt.writeLen)))
+
 		// write
 		p := make([]byte, tt.writeLen)
 		for i := int64(0); i < tt.writeLen; i++ {
 			p[i] = 'X'
 		}
-		_, err := WriteAt(filePath, p, tt.offSet)
+		wn, err := d.WriteAt(tmpTestFile, p, tt.offSet)
 		if err != nil {
 			t.Errorf("%d: error = %v", i, err)
 		}
 
+		// check data size after write
 		dSize := getDataLength(f, tt.blockSize)
 		if dSize != expectedDSize {
 			t.Errorf("%d: expect data length %d, got %d", i, expectedDSize, dSize)
 		}
+
+		// read
+		r := make([]byte, tt.writeLen)
+		rn, err := d.ReadAt(tmpTestFile, r, tt.offSet)
+		if err != nil {
+			t.Errorf("%d: error = %v", i, err)
+		}
+
+		// check write length and read length
+		if wn != rn {
+			t.Errorf("%d: writen length %d is not equal to read length %d",
+				i, wn, rn)
+		}
+
+		// check write data and read data
+		if !bytes.Equal(p, r) {
+			t.Errorf("%d: writen in data %x is not the same as read out data %x",
+				i, p, r)
+		}
 	}
 }
 
-func TestWriteNonExistFile(t *testing.T) {
+func TestReadNonExistFile(t *testing.T) {
 	tests := []struct {
-		filePath  string
+		fileRoot  string
+		fileName  string
 		blockSize int64
 		offSet    int64
 		writeLen  int64
 	}{
-		{"nowhere_exist", 4096, 0, 50},
+		{"nowhere_exist", "no", 4096, 0, 50},
 	}
 	for i, tt := range tests {
+		d := &Disk{Name: "", Root: tt.fileRoot}
 		p := make([]byte, tt.writeLen)
 		for i := int64(0); i < tt.writeLen; i++ {
 			p[i] = 'X'
 		}
-		_, err := WriteAt(tt.filePath, p, tt.offSet)
+		_, err := d.ReadAt(tt.fileName, p, tt.offSet)
 		if !os.IsNotExist(err) {
 			t.Errorf("%d: expect file not exist, got error = %v", i, err)
 		}
