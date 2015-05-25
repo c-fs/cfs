@@ -11,11 +11,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	// make this a flag
-	port = ":15524"
-)
-
 func main() {
 	data, err := ioutil.ReadFile("default.conf")
 	if err != nil {
@@ -29,12 +24,12 @@ func main() {
 
 	log.Printf("server: starting server...")
 
-	lis, err := net.Listen("tcp", port)
+	lis, err := net.Listen("tcp", net.JoinHostPort(conf.Bind, conf.Port))
 	if err != nil {
 		log.Fatalf("server: failed to listen: %v", err)
 	}
 
-	log.Printf("server: listening on %s", port)
+	log.Printf("server: listening on %s", net.JoinHostPort(conf.Bind, conf.Port))
 
 	cfs := NewServer()
 
