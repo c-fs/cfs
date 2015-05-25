@@ -23,6 +23,11 @@ type Disk struct {
 func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 	name = path.Join(d.Root, name)
 
+	// nil or zero length payload
+	if len(p) == 0 {
+		return 0, nil
+	}
+
 	// block size
 	bsize := blockSize(name)
 	// payload size
@@ -51,7 +56,7 @@ func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 		// 1. There is an error reading block
 		// 2. We read a partial block -- reach the end of the file
 		// 3. We can't copy into p anymore -- p is filled up
-		if err != nil || n < bsize-crc32Len || copied == 0 {
+		if err != nil || n < bsize-crc32Len || len(p) == 0 {
 			return read + copied, err
 		}
 		read += copied
