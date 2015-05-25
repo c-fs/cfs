@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	tmpTestFile = "cfs_disk_block_test"
+	tmpTestFile = "cfs_disk_test"
 )
 
 // testFilePattern is used to fill the test file, having a repeat pattern helps
@@ -20,7 +20,7 @@ const (
 // wrote in is not collapsed
 var testFilePattern = []byte{'a', 'b', 'c', 'd', 'e', 'f', 'g'}
 
-func setUpTestFile(length int64, t *testing.T) *os.File {
+func setUpBlockTestFile(length int64, t *testing.T) *os.File {
 	f, err := os.OpenFile(
 		path.Join(os.TempDir(), tmpTestFile),
 		os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
@@ -51,7 +51,7 @@ func setUpTestFile(length int64, t *testing.T) *os.File {
 func TestPartlyReadBlock(t *testing.T) {
 	defer os.Remove(tmpTestFile)
 	// 90 bytes file, block size = 20 bytes
-	f := setUpTestFile(90, t)
+	f := setUpBlockTestFile(90, t)
 
 	// writeBlock to set a correct CRC
 	p := make([]byte, 6)
@@ -85,7 +85,7 @@ func TestCRCErrCheck(t *testing.T) {
 	defer os.Remove(tmpTestFile)
 	p := make([]byte, 6)
 	for i, tt := range tests {
-		f := setUpTestFile(tt.fileSize, t)
+		f := setUpBlockTestFile(tt.fileSize, t)
 		_, err := readBlock(f, p, tt.index, tt.bs)
 		if err != ErrBadCRC {
 			t.Errorf("%d: expect error %v got %v", i, ErrBadCRC, err)
@@ -128,7 +128,7 @@ func TestReadWriteBlock(t *testing.T) {
 
 	defer os.Remove(tmpTestFile)
 	for i, tt := range tests {
-		f := setUpTestFile(tt.fileSize, t)
+		f := setUpBlockTestFile(tt.fileSize, t)
 
 		// write
 		p := make([]byte, tt.writeLen)
@@ -208,7 +208,7 @@ func TestReadWriteBlock(t *testing.T) {
 
 	// error test
 	for i, tt := range errtests {
-		f := setUpTestFile(tt.fileSize, t)
+		f := setUpBlockTestFile(tt.fileSize, t)
 		p := make([]byte, tt.writeLen)
 		for i := int64(0); i < tt.writeLen; i++ {
 			p[i] = 'X'
