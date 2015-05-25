@@ -80,10 +80,11 @@ func TestReadWriteDisk(t *testing.T) {
 		{4096*2 + 2048, 4096, 4096*2 + 4084, 4096 - crc32Len},
 	}
 
+	diskName := "test"
 	defer os.Remove(tmpTestFile)
 	for i, tt := range tests {
 		fileRoot, f := setUpDiskTestFile(tt.dataSize, tt.blockSize, t)
-		d := &Disk{Name: "", Root: fileRoot}
+		d := &Disk{Name: diskName, Root: fileRoot}
 		originalDSize := getDataLength(f, tt.blockSize)
 		expectedDSize := int64(max(int(originalDSize), int(tt.offSet+tt.writeLen)))
 
@@ -126,16 +127,17 @@ func TestReadWriteDisk(t *testing.T) {
 
 func TestReadNonExistFile(t *testing.T) {
 	tests := []struct {
+		diskName  string
 		fileRoot  string
 		fileName  string
 		blockSize int64
 		offSet    int64
 		writeLen  int64
 	}{
-		{"nowhere_exist", "no", 4096, 0, 50},
+		{"disk0", "nowhere_exist", "no", 4096, 0, 50},
 	}
 	for i, tt := range tests {
-		d := &Disk{Name: "", Root: tt.fileRoot}
+		d := &Disk{Name: tt.diskName, Root: tt.fileRoot}
 		p := make([]byte, tt.writeLen)
 		for i := int64(0); i < tt.writeLen; i++ {
 			p[i] = 'X'
