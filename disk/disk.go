@@ -55,6 +55,7 @@ func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 			return read + copied, err
 		}
 		read += copied
+		stIdx++
 	}
 }
 
