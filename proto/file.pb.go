@@ -16,6 +16,10 @@ It has these top-level messages:
 	WriteReply
 	ReadRequest
 	ReadReply
+	ReconstructSrc
+	ReconstructDst
+	ReconstructRequest
+	ReconstructReply
 */
 package proto
 
@@ -131,6 +135,79 @@ func (m *ReadReply) String() string { return proto1.CompactTextString(m) }
 func (*ReadReply) ProtoMessage()    {}
 
 func (m *ReadReply) GetError() *Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+type ReconstructSrc struct {
+	Remote string `protobuf:"bytes,1,opt,name=remote" json:"remote,omitempty"`
+	Name   string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+}
+
+func (m *ReconstructSrc) Reset()         { *m = ReconstructSrc{} }
+func (m *ReconstructSrc) String() string { return proto1.CompactTextString(m) }
+func (*ReconstructSrc) ProtoMessage()    {}
+
+type ReconstructDst struct {
+	// The destination should always be local server.
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+}
+
+func (m *ReconstructDst) Reset()         { *m = ReconstructDst{} }
+func (m *ReconstructDst) String() string { return proto1.CompactTextString(m) }
+func (*ReconstructDst) ProtoMessage()    {}
+
+// http://web.eecs.utk.edu/~plank/plank/papers/2013-02-11-FAST-Tutorial.pdf
+// https://www.usenix.org/legacy/events/fast09/tech/full_papers/plank/plank_html/
+// Optimized for Cauchy Reed-Solomon (CRS) Codes, but should also be applied to
+// RAID5 and RAID6
+type ReconstructRequest struct {
+	Srcs []*ReconstructSrc `protobuf:"bytes,1,rep,name=srcs" json:"srcs,omitempty"`
+	Dsts []*ReconstructDst `protobuf:"bytes,2,rep,name=dsts" json:"dsts,omitempty"`
+	// a strip is partitioned into w packets
+	// Invariant: strip_size = packet_size * w
+	// w MUST be in the range [1, 32]
+	// https://www.usenix.org/legacy/events/fast09/tech/full_papers/plank/plank_html Section 2.2
+	StripSize  int32 `protobuf:"varint,3,opt,name=strip_size" json:"strip_size,omitempty"`
+	PacketSize int32 `protobuf:"varint,4,opt,name=packet_size" json:"packet_size,omitempty"`
+	W          int32 `protobuf:"varint,5,opt,name=w" json:"w,omitempty"`
+	// wk * wn matrix of bits
+	// k is the number of sources, n is the number of dests.
+	// bit_matrix[i][j] = i * k * w + j
+	// TODO: make this a dense bytes array and each bytes contains
+	// 8 bits.
+	BitMatrix int32 `protobuf:"varint,6,opt,name=bit_matrix" json:"bit_matrix,omitempty"`
+}
+
+func (m *ReconstructRequest) Reset()         { *m = ReconstructRequest{} }
+func (m *ReconstructRequest) String() string { return proto1.CompactTextString(m) }
+func (*ReconstructRequest) ProtoMessage()    {}
+
+func (m *ReconstructRequest) GetSrcs() []*ReconstructSrc {
+	if m != nil {
+		return m.Srcs
+	}
+	return nil
+}
+
+func (m *ReconstructRequest) GetDsts() []*ReconstructDst {
+	if m != nil {
+		return m.Dsts
+	}
+	return nil
+}
+
+type ReconstructReply struct {
+	Error *Error `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
+}
+
+func (m *ReconstructReply) Reset()         { *m = ReconstructReply{} }
+func (m *ReconstructReply) String() string { return proto1.CompactTextString(m) }
+func (*ReconstructReply) ProtoMessage()    {}
+
+func (m *ReconstructReply) GetError() *Error {
 	if m != nil {
 		return m.Error
 	}
