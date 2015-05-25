@@ -3,7 +3,26 @@ cfs (cloud file system) is a low-level filesystem interface for building the clo
 
 ## Status
 
-pre-alpha
+Current status is pre-alpha
+
+TODO:
+
+1. basic file system interface (write, read, remove, mkdir, rename)
+2. copy from another cfs server
+3. bit-matrix based data reconstruction
+4. expose basic run time metrics
+5. basic resource enforcement 
+6. container deployment
+
+alpha
+
+TODO:
+
+1. profiling and benchmark
+2. per disk metadata store
+3. simple ACL support
+4. user level buffer
+5. tons of tests
 
 We will **BREAK** everything (data format, API, command line tool, etc.) before 1.0.
 
@@ -21,7 +40,9 @@ go build
 ```
 
 cfs listens on `15524` by default. The root path of cfs is the current directory by default.
+
 cfs creates a `/cfs0` disk with root path `/cfs0000` by default. 
+
 TODO: make all these configurable.
 
 #### Write and Read file
