@@ -1,10 +1,13 @@
 package main
 
 import (
+	"io/ioutil"
 	"log"
 	"net"
 
+	"github.com/BurntSushi/toml"
 	pb "github.com/c-fs/cfs/proto"
+	"github.com/c-fs/cfs/server/config"
 	"google.golang.org/grpc"
 )
 
@@ -14,6 +17,16 @@ const (
 )
 
 func main() {
+	data, err := ioutil.ReadFile("default.conf")
+	if err != nil {
+		log.Fatalf("server: cannot load configuration file[%s] (%v)", "default.conf", err)
+	}
+
+	var conf config.Server
+	if _, err := toml.Decode(string(data), &conf); err != nil {
+		log.Fatalf("server: configuration file[%s] is not valid (%v)", err)
+	}
+
 	log.Printf("server: starting server...")
 
 	lis, err := net.Listen("tcp", port)
@@ -24,9 +37,12 @@ func main() {
 	log.Printf("server: listening on %s", port)
 
 	cfs := NewServer()
-	err = cfs.AddDisk("cfs0", "./cfs0000")
-	if err != nil {
-		log.Fatalf("server: failed to add disk (%v)", err)
+
+	for _, d := range conf.Disks {
+		err = cfs.AddDisk(d.Name, d.Root)
+		if err != nil {
+			log.Fatalf("server: failed to add disk (%v)", err)
+		}
 	}
 
 	s := grpc.NewServer()
