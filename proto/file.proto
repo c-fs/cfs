@@ -94,7 +94,7 @@ message ReconstructRequest {
     // bit_matrix[i][j] = i * k * w + j
     // TODO: make this a dense bytes array and each bytes contains
     // 8 bits.
-    optional int32 bit_matrix = 6;
+    repeated int32 bit_matrix = 6;
 }
 
 message ReconstructReply {
