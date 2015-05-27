@@ -140,6 +140,12 @@ func (d *Disk) WriteAt(name string, p []byte, off int64) (int, error) {
 	return max(n-padding, 0), nil
 }
 
+func (d *Disk) Rename(oldname, newname string) error {
+	oldname = path.Join(d.Root, oldname)
+	newname = path.Join(d.Root, newname)
+	return os.Rename(oldname, newname)
+}
+
 // fillBlock fills the partial block starting from the given offset with the
 // given data. It first reads out the block, fills in the given data, and
 // writes the block back.
