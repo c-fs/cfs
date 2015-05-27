@@ -61,3 +61,34 @@ func (s *server) Read(ctx context.Context, req *pb.ReadRequest) (*pb.ReadReply, 
 	reply := &pb.ReadReply{BytesRead: int64(n), Data: data}
 	return reply, nil
 }
+
+func (s *server) Rename(ctx context.Context, req *pb.RenameRequest) (*pb.RenameReply, error) {
+	dn0, ofn, err := splitDiskAndFile(req.Oldname)
+	if err != nil {
+		log.Printf("server: rename error (%v)", err)
+		return &pb.RenameReply{}, nil
+	}
+	dn1, nfn, err := splitDiskAndFile(req.Newname)
+	if err != nil {
+		log.Printf("server: rename error (%v)", err)
+		return &pb.RenameReply{}, nil
+	}
+	if dn0 != dn1 {
+		log.Printf("server: rename error (%v)", "not same disk")
+		return &pb.RenameReply{}, nil
+	}
+
+	d := s.Disk(dn0)
+	if d == nil {
+		log.Printf("server: read error (cannot find disk %s)", dn0)
+		return &pb.RenameReply{}, nil
+	}
+
+	err = d.Rename(ofn, nfn)
+	if err != nil {
+		log.Printf("server: rename error (%v)", err)
+		return &pb.RenameReply{}, nil
+	}
+	reply := &pb.RenameReply{}
+	return reply, nil
+}

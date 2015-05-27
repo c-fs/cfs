@@ -16,6 +16,8 @@ It has these top-level messages:
 	WriteReply
 	ReadRequest
 	ReadReply
+	RenameRequest
+	RenameReply
 	ReconstructSrc
 	ReconstructDst
 	ReconstructRequest
@@ -141,6 +143,30 @@ func (m *ReadReply) GetError() *Error {
 	return nil
 }
 
+type RenameRequest struct {
+	Oldname string `protobuf:"bytes,1,opt,name=oldname" json:"oldname,omitempty"`
+	Newname string `protobuf:"bytes,2,opt,name=newname" json:"newname,omitempty"`
+}
+
+func (m *RenameRequest) Reset()         { *m = RenameRequest{} }
+func (m *RenameRequest) String() string { return proto1.CompactTextString(m) }
+func (*RenameRequest) ProtoMessage()    {}
+
+type RenameReply struct {
+	Error *Error `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
+}
+
+func (m *RenameReply) Reset()         { *m = RenameReply{} }
+func (m *RenameReply) String() string { return proto1.CompactTextString(m) }
+func (*RenameReply) ProtoMessage()    {}
+
+func (m *RenameReply) GetError() *Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
 type ReconstructSrc struct {
 	Remote string `protobuf:"bytes,1,opt,name=remote" json:"remote,omitempty"`
 	Name   string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
@@ -166,9 +192,13 @@ func (*ReconstructDst) ProtoMessage()    {}
 type ReconstructRequest struct {
 	Srcs []*ReconstructSrc `protobuf:"bytes,1,rep,name=srcs" json:"srcs,omitempty"`
 	Dsts []*ReconstructDst `protobuf:"bytes,2,rep,name=dsts" json:"dsts,omitempty"`
-	// a strip is partitioned into w packets
+	// each src has multiple strips. the length of src must be
+	// a multiply of stripe_size or it should be zero filled.
+	//
+	// a strip (also called block) is partitioned into w packets
 	// Invariant: strip_size = packet_size * w
 	// w MUST be in the range [1, 32]
+	//
 	// https://www.usenix.org/legacy/events/fast09/tech/full_papers/plank/plank_html Section 2.2
 	StripSize  int32 `protobuf:"varint,3,opt,name=strip_size" json:"strip_size,omitempty"`
 	PacketSize int32 `protobuf:"varint,4,opt,name=packet_size" json:"packet_size,omitempty"`
@@ -178,7 +208,7 @@ type ReconstructRequest struct {
 	// bit_matrix[i][j] = i * k * w + j
 	// TODO: make this a dense bytes array and each bytes contains
 	// 8 bits.
-	BitMatrix int32 `protobuf:"varint,6,opt,name=bit_matrix" json:"bit_matrix,omitempty"`
+	BitMatrix []int32 `protobuf:"varint,6,rep,name=bit_matrix" json:"bit_matrix,omitempty"`
 }
 
 func (m *ReconstructRequest) Reset()         { *m = ReconstructRequest{} }
@@ -222,6 +252,7 @@ func init() {
 type CfsClient interface {
 	Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteReply, error)
 	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error)
+	Rename(ctx context.Context, in *RenameRequest, opts ...grpc.CallOption) (*RenameReply, error)
 }
 
 type cfsClient struct {
@@ -250,11 +281,21 @@ func (c *cfsClient) Read(ctx context.Context, in *ReadRequest, opts ...grpc.Call
 	return out, nil
 }
 
+func (c *cfsClient) Rename(ctx context.Context, in *RenameRequest, opts ...grpc.CallOption) (*RenameReply, error) {
+	out := new(RenameReply)
+	err := grpc.Invoke(ctx, "/proto.cfs/Rename", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Cfs service
 
 type CfsServer interface {
 	Write(context.Context, *WriteRequest) (*WriteReply, error)
 	Read(context.Context, *ReadRequest) (*ReadReply, error)
+	Rename(context.Context, *RenameRequest) (*RenameReply, error)
 }
 
 func RegisterCfsServer(s *grpc.Server, srv CfsServer) {
@@ -285,6 +326,18 @@ func _Cfs_Read_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, b
 	return out, nil
 }
 
+func _Cfs_Rename_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(RenameRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CfsServer).Rename(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _Cfs_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.cfs",
 	HandlerType: (*CfsServer)(nil),
@@ -296,6 +349,10 @@ var _Cfs_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Read",
 			Handler:    _Cfs_Read_Handler,
+		},
+		{
+			MethodName: "Rename",
+			Handler:    _Cfs_Rename_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},
