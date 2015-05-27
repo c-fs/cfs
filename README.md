@@ -28,7 +28,7 @@ We will **BREAK** everything (data format, API, command line tool, etc.) before 
 
 ## Dependencies
 
-cfs depends on GF-complete and Jerasure for earsure coding.
+cfs depends on GF-complete and Jerasure for erasure coding.
 
 To install GF-complete, see https://github.com/c-fs/gf-complete
 
