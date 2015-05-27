@@ -26,6 +26,16 @@ TODO:
 
 We will **BREAK** everything (data format, API, command line tool, etc.) before 1.0.
 
+## Dependencies
+
+cfs depends on GF-complete and Jerasure for earsure coding.
+
+To install GF-complete, see https://github.com/c-fs/gf-complete
+
+To install Jerasue, see https://github.com/c-fs/Jerasure/
+
+TODO: write build/MAKE file
+
 ## Play with cfs
 
 ### Run Server
