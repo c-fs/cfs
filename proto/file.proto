@@ -5,6 +5,7 @@ package proto;
 service cfs {
     rpc Write(WriteRequest) returns (WriteReply);
     rpc Read(ReadRequest) returns (ReadReply);
+    rpc Rename(RenameRequest) returns (RenameReply);
 }
 
 
@@ -57,6 +58,15 @@ message ReadReply {
     optional int64 bytes_read = 2;
     optional bytes data = 3;
     optional fixed32 checksum = 4;
+}
+
+message RenameRequest {
+    optional string oldname = 1;
+    optional string newname = 2;
+}
+
+message RenameReply {
+    optional Error error = 1;
 }
 
 message ReconstructSrc {
