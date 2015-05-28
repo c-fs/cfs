@@ -8,10 +8,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	address = "localhost:15524"
-)
-
 type handlerFunc func(context.Context, pb.CfsClient) error
 
 func rawHandle(ctx context.Context, fn handlerFunc) {
