@@ -6,6 +6,7 @@ service cfs {
     rpc Write(WriteRequest) returns (WriteReply);
     rpc Read(ReadRequest) returns (ReadReply);
     rpc Rename(RenameRequest) returns (RenameReply);
+    rpc Remove(RemoveRequest) returns (RemoveReply);
 }
 
 
@@ -68,6 +69,19 @@ message RenameRequest {
 message RenameReply {
     optional Error error = 1;
 }
+
+// Remove removes the named file or directory. If there is an error, it will be of type *PathError.
+message RemoveRequest {
+    optional string name = 1;
+    // All removes path and any children it contains. It removes everything it can but returns the first error it 
+    // encounters. If the path does not exist, RemoveAll returns nil (no error).
+    optional bool all = 2;
+}
+
+message RemoveReply {
+    optional Error error = 1;
+}
+
 
 message ReconstructSrc {
     optional string remote = 1;          // remote server (10.10.0.1:15524)

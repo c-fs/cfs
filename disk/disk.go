@@ -146,6 +146,14 @@ func (d *Disk) Rename(oldname, newname string) error {
 	return os.Rename(oldname, newname)
 }
 
+func (d *Disk) Remove(name string, all bool) error {
+	name = path.Join(d.Root, name)
+	if !all {
+		return os.Remove(name)
+	}
+	return os.RemoveAll(name)
+}
+
 // fillBlock fills the partial block starting from the given offset with the
 // given data. It first reads out the block, fills in the given data, and
 // writes the block back.
