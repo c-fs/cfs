@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package proto;
+
+service stats {
+	rpc ContainerInfo(ContainerInfoRequest) returns (ContainerInfoReply);
+}
+
+message ContainerInfoRequest {
+}
+
+message ContainerInfoReply {
+	optional string info = 1;
+	optional string error = 2;
+}
