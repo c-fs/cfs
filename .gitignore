@@ -26,4 +26,4 @@ _testmain.go
 # cfs binary
 /server/server
 /server/cfs0000
-/ctl/ctl
+/cfsctl/cfsctl
