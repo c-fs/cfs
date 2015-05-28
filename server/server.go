@@ -92,3 +92,25 @@ func (s *server) Rename(ctx context.Context, req *pb.RenameRequest) (*pb.RenameR
 	reply := &pb.RenameReply{}
 	return reply, nil
 }
+
+func (s *server) Remove(ctx context.Context, req *pb.RemoveRequest) (*pb.RemoveReply, error) {
+	dn, fn, err := splitDiskAndFile(req.Name)
+	if err != nil {
+		log.Printf("server: rename error (%v)", err)
+		return &pb.RemoveReply{}, nil
+	}
+
+	d := s.Disk(dn)
+	if d == nil {
+		log.Printf("server: rename error (cannot find disk %s)", dn)
+		return &pb.RemoveReply{}, nil
+	}
+
+	err = d.Remove(fn, req.All)
+	if err != nil {
+		log.Printf("server: read error (%v)", err)
+		return &pb.RemoveReply{}, nil
+	}
+	reply := &pb.RemoveReply{}
+	return reply, nil
+}
