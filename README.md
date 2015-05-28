@@ -58,14 +58,14 @@ TODO: make all these configurable.
 #### Write and Read file
 
 ``` bash
-cd ctl
+cd cfsctl
 
 go build
 
-./ctl -action write -name "cfs0/foo" -data "bar"
+./cfsctl -action write -name "cfs0/foo" -data "bar"
 2015/05/24 11:16:48 3 bytes written to foo at offset 0
 
-./ctl -action read -name "cfs0/foo" -length 100
+./cfsctl -action read -name "cfs0/foo" -length 100
 2015/05/24 11:17:34 bar
 ```
 
@@ -76,9 +76,9 @@ echo "corrupt" -> ./server/cfs0000/foo
 ```
 
 Try to read out the file again
-``` 
-./ctl/ctl -action read -name "cfs0/foo" -length 100
-2015/05/24 11:18:56 
+```
+./cfsctl -action read -name "cfs0/foo" -length 100
+2015/05/24 11:18:56
 ```
 
 Nothing is read out.
