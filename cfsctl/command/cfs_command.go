@@ -2,6 +2,10 @@ package command
 
 import "github.com/spf13/cobra"
 
+var (
+	address string
+)
+
 var CfsctlCmd = &cobra.Command{
 	Use:   "cfsctl",
 	Short: "cfsctl is cfs comment line client",
@@ -14,6 +18,8 @@ Complete documentation is available at https://github.com/c-fs/cfs`,
 }
 
 func init() {
+	CfsctlCmd.PersistentFlags().StringVarP(&address, "address", "",
+		"localhost:15524", "address of the cfs node server")
 	addCommand()
 }
 
