@@ -69,10 +69,14 @@ cfsctl read --name="cfs0/foo" --length=100
 2015/05/24 11:17:34 bar
 ```
 
-#### Rename file
+#### Rename and Remove file
 
 ``` bash
 cfsctl rename --oldname="cfs0/foo" --newname="cfs0/food"
+2015/05/28 15:20:22 rename cfs0/foo into cfs0/food
+
+cfsctl remove --name="cfs0/food"
+2015/05/28 15:20:43 deletion succeeded
 ```
 
 #### Read a corrupted file
