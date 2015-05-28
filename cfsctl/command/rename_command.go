@@ -35,6 +35,7 @@ func handleRename(ctx context.Context, c pb.CfsClient) error {
 	if err != nil {
 		log.Fatalf("Rename err (%v)", err)
 	}
+	log.Printf("rename %s into %s", renameOld, renameNew)
 
 	return nil
 }

@@ -21,4 +21,5 @@ func addCommand() {
 	CfsctlCmd.AddCommand(readCmd)
 	CfsctlCmd.AddCommand(writeCmd)
 	CfsctlCmd.AddCommand(renameCmd)
+	CfsctlCmd.AddCommand(removeCmd)
 }
