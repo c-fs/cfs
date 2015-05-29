@@ -18,7 +18,11 @@ var removeCmd = &cobra.Command{
 	Short: "remove file from a cfs node",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		rawHandle(context.TODO(), handleRemove)
+		conn := setUpGrpcClient()
+		defer conn.Close()
+		c := pb.NewCfsClient(conn)
+
+		handleRemove(context.TODO(), c)
 	},
 }
 
