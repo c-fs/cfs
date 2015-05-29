@@ -62,11 +62,21 @@ cd cfsctl
 
 go build
 
-./cfsctl -action write -name "cfs0/foo" -data "bar"
+cfsctl write --name="cfs0/foo" --data="bar"
 2015/05/24 11:16:48 3 bytes written to foo at offset 0
 
-./cfsctl -action read -name "cfs0/foo" -length 100
+cfsctl read --name="cfs0/foo" --length=100
 2015/05/24 11:17:34 bar
+```
+
+#### Rename and Remove file
+
+``` bash
+cfsctl rename --oldname="cfs0/foo" --newname="cfs0/food"
+2015/05/28 15:20:22 rename cfs0/foo into cfs0/food
+
+cfsctl remove --name="cfs0/food"
+2015/05/28 15:20:43 deletion succeeded
 ```
 
 #### Read a corrupted file
@@ -77,7 +87,7 @@ echo "corrupt" -> ./server/cfs0000/foo
 
 Try to read out the file again
 ```
-./cfsctl -action read -name "cfs0/foo" -length 100
+cfsctl read --name="cfs0/foo" --length=100
 2015/05/24 11:18:56
 ```
 
