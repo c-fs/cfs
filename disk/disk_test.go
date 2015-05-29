@@ -153,13 +153,14 @@ func TestReadNonExistFile(t *testing.T) {
 
 	for i, tt := range tests {
 		d := newTestDisk(tt.diskName, tt.fileRoot, tt.mkdir)
-		defer d.Remove("", true)
 
 		p := make([]byte, tt.readLen)
 		_, err := d.ReadAt(tt.fileName, p, tt.offSet)
 		if !os.IsNotExist(err) {
 			t.Errorf("%d: expect file not exist, got error = %v", i, err)
 		}
+
+		d.Remove("", true)
 	}
 }
 
@@ -169,14 +170,15 @@ func TestRename(t *testing.T) {
 		fileNameOld string
 		fileNameNew string
 	}{
+		// rename old to new
 		{"disk0", "old", "new"},
+		// rename to the existing file
 		{"disk0", "old", "old"},
 	}
 
 	for i, tt := range tests {
 		writeLen := int64(50)
 		d := newTestDisk(tt.diskName, "rename", true)
-		defer d.Remove("", true)
 
 		// write
 		p := make([]byte, writeLen)
@@ -213,7 +215,7 @@ func TestRename(t *testing.T) {
 				i, p, r)
 		}
 
-		d.Remove(tt.fileNameNew, true)
+		d.Remove("", true)
 	}
 }
 
@@ -233,12 +235,13 @@ func TestRenameNonExistFile(t *testing.T) {
 
 	for i, tt := range tests {
 		d := newTestDisk(tt.diskName, tt.fileRoot, tt.mkdir)
-		defer d.Remove("", true)
 
 		err := d.Rename(tt.fileNameOld, tt.fileNameNew)
 		if !os.IsNotExist(err) {
 			t.Errorf("%d: expect file not exist, got error = %v", i, err)
 		}
+
+		d.Remove("", true)
 	}
 }
 
@@ -268,7 +271,6 @@ func TestRemove(t *testing.T) {
 	for i, tt := range tests {
 		writeLen := int64(50)
 		d := newTestDisk(tt.diskName, "remove", true)
-		defer d.Remove("", true)
 
 		// write
 		p := make([]byte, writeLen)
@@ -299,6 +301,8 @@ func TestRemove(t *testing.T) {
 				t.Errorf("%d: expect file not exist, got error = %v", i, err)
 			}
 		}
+
+		d.Remove("", true)
 	}
 }
 
@@ -316,12 +320,13 @@ func TestRemoveNonExistFile(t *testing.T) {
 	}
 	for i, tt := range tests {
 		d := newTestDisk(tt.diskName, tt.fileRoot, tt.mkdir)
-		defer d.Remove("", true)
 
 		err := d.Remove(tt.fileNameOld, false)
 		if !os.IsNotExist(err) {
 			t.Errorf("%d: expect file not exist, got error = %v", i, err)
 		}
+
+		d.Remove("", true)
 	}
 }
 
