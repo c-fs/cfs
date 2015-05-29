@@ -19,7 +19,11 @@ var readCmd = &cobra.Command{
 	Short: "read data from a cfs node",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		rawHandle(context.TODO(), handleRead)
+		conn := setUpGrpcClient()
+		defer conn.Close()
+		c := pb.NewCfsClient(conn)
+
+		handleRead(context.TODO(), c)
 	},
 }
 
