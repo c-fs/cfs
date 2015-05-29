@@ -1,6 +1,11 @@
 package main
 
-import "github.com/spf13/cobra"
+import (
+	"log"
+
+	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
+)
 
 var (
 	address string
@@ -28,4 +33,13 @@ func addCommand() {
 	cfsctlCmd.AddCommand(writeCmd)
 	cfsctlCmd.AddCommand(renameCmd)
 	cfsctlCmd.AddCommand(removeCmd)
+}
+
+func setUpGrpcClient() *grpc.ClientConn {
+	// Set up a connection to the server.
+	conn, err := grpc.Dial(address)
+	if err != nil {
+		log.Fatalf("Cannot connect: %v", err)
+	}
+	return conn
 }

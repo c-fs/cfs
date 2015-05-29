@@ -18,7 +18,11 @@ var renameCmd = &cobra.Command{
 	Short: "rename a file on a cfs node",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		rawHandle(context.TODO(), handleRename)
+		conn := setUpGrpcClient()
+		defer conn.Close()
+		c := pb.NewCfsClient(conn)
+
+		handleRename(context.TODO(), c)
 	},
 }
 
