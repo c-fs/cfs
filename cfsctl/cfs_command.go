@@ -11,7 +11,7 @@ var (
 	address string
 )
 
-var cfsctlCmd = &cobra.Command{
+var cmd = &cobra.Command{
 	Use:   "cfsctl",
 	Short: "cfsctl is cfs comment line client",
 	Long: `cfsctl is the main command, used to communicate to your cfs node.
@@ -23,16 +23,17 @@ Complete documentation is available at https://github.com/c-fs/cfs`,
 }
 
 func init() {
-	cfsctlCmd.PersistentFlags().StringVarP(&address, "address", "",
+	cmd.PersistentFlags().StringVarP(&address, "address", "",
 		"localhost:15524", "address of the cfs node server")
 	addCommand()
 }
 
 func addCommand() {
-	cfsctlCmd.AddCommand(readCmd)
-	cfsctlCmd.AddCommand(writeCmd)
-	cfsctlCmd.AddCommand(renameCmd)
-	cfsctlCmd.AddCommand(removeCmd)
+	cmd.AddCommand(readCmd)
+	cmd.AddCommand(writeCmd)
+	cmd.AddCommand(renameCmd)
+	cmd.AddCommand(removeCmd)
+	cmd.AddCommand(syncCmd)
 }
 
 func setUpGrpcClient() *grpc.ClientConn {

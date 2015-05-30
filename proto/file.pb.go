@@ -20,6 +20,8 @@ It has these top-level messages:
 	RenameReply
 	RemoveRequest
 	RemoveReply
+	SyncRequest
+	SyncReply
 	ReconstructSrc
 	ReconstructDst
 	ReconstructRequest
@@ -172,7 +174,8 @@ func (m *RenameReply) GetError() *Error {
 // Remove removes the named file or directory. If there is an error, it will be of type *PathError.
 type RemoveRequest struct {
 	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	// All removes path and any children it contains. It removes everything it can but returns the first error it // encounters. If the path does not exist, RemoveAll returns nil (no error).
+	// All removes path and any children it contains. It removes everything it can but returns the first error it
+	// encounters. If the path does not exist, RemoveAll returns nil (no error).
 	All bool `protobuf:"varint,2,opt,name=all" json:"all,omitempty"`
 }
 
@@ -191,6 +194,29 @@ func (*RemoveReply) ProtoMessage()    {}
 func (m *RemoveReply) GetError() *Error {
 	if m != nil {
 		return m.Error
+	}
+	return nil
+}
+
+type SyncRequest struct {
+	Names []string `protobuf:"bytes,1,rep,name=names" json:"names,omitempty"`
+}
+
+func (m *SyncRequest) Reset()         { *m = SyncRequest{} }
+func (m *SyncRequest) String() string { return proto1.CompactTextString(m) }
+func (*SyncRequest) ProtoMessage()    {}
+
+type SyncReply struct {
+	Errors []*Error `protobuf:"bytes,1,rep,name=errors" json:"errors,omitempty"`
+}
+
+func (m *SyncReply) Reset()         { *m = SyncReply{} }
+func (m *SyncReply) String() string { return proto1.CompactTextString(m) }
+func (*SyncReply) ProtoMessage()    {}
+
+func (m *SyncReply) GetErrors() []*Error {
+	if m != nil {
+		return m.Errors
 	}
 	return nil
 }
@@ -282,6 +308,7 @@ type CfsClient interface {
 	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error)
 	Rename(ctx context.Context, in *RenameRequest, opts ...grpc.CallOption) (*RenameReply, error)
 	Remove(ctx context.Context, in *RemoveRequest, opts ...grpc.CallOption) (*RemoveReply, error)
+	Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (*SyncReply, error)
 }
 
 type cfsClient struct {
@@ -328,6 +355,15 @@ func (c *cfsClient) Remove(ctx context.Context, in *RemoveRequest, opts ...grpc.
 	return out, nil
 }
 
+func (c *cfsClient) Sync(ctx context.Context, in *SyncRequest, opts ...grpc.CallOption) (*SyncReply, error) {
+	out := new(SyncReply)
+	err := grpc.Invoke(ctx, "/proto.cfs/Sync", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Cfs service
 
 type CfsServer interface {
@@ -335,6 +371,7 @@ type CfsServer interface {
 	Read(context.Context, *ReadRequest) (*ReadReply, error)
 	Rename(context.Context, *RenameRequest) (*RenameReply, error)
 	Remove(context.Context, *RemoveRequest) (*RemoveReply, error)
+	Sync(context.Context, *SyncRequest) (*SyncReply, error)
 }
 
 func RegisterCfsServer(s *grpc.Server, srv CfsServer) {
@@ -389,6 +426,18 @@ func _Cfs_Remove_Handler(srv interface{}, ctx context.Context, codec grpc.Codec,
 	return out, nil
 }
 
+func _Cfs_Sync_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(SyncRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CfsServer).Sync(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _Cfs_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.cfs",
 	HandlerType: (*CfsServer)(nil),
@@ -408,6 +457,10 @@ var _Cfs_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Remove",
 			Handler:    _Cfs_Remove_Handler,
+		},
+		{
+			MethodName: "Sync",
+			Handler:    _Cfs_Sync_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},

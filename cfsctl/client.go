@@ -1,5 +1,5 @@
 package main
 
 func main() {
-	cfsctlCmd.Execute()
+	cmd.Execute()
 }

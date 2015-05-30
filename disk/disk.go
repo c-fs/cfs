@@ -154,6 +154,15 @@ func (d *Disk) Remove(name string, all bool) error {
 	return os.RemoveAll(name)
 }
 
+func (d *Disk) Sync(name string) error {
+	// no-op for now since we close
+	// file after writing to it.
+	// we do not buffer anything.
+	name = path.Join(d.Root, name)
+	_, err := os.Stat(name)
+	return err
+}
+
 // fillBlock fills the partial block starting from the given offset with the
 // given data. It first reads out the block, fills in the given data, and
 // writes the block back.

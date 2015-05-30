@@ -1,11 +1,16 @@
 package main
 
 import (
+	"errors"
 	"log"
 
 	"github.com/c-fs/cfs/disk"
 	pb "github.com/c-fs/cfs/proto"
 	"golang.org/x/net/context"
+)
+
+var (
+	errDiskNotFound = errors.New("disk not found")
 )
 
 type server struct {
@@ -113,4 +118,30 @@ func (s *server) Remove(ctx context.Context, req *pb.RemoveRequest) (*pb.RemoveR
 	}
 	reply := &pb.RemoveReply{}
 	return reply, nil
+}
+
+func (s *server) Sync(ctx context.Context, req *pb.SyncRequest) (*pb.SyncReply, error) {
+	reply := &pb.SyncReply{}
+
+	for _, name := range req.Names {
+		err := s.sync(name)
+		if err != nil {
+			log.Printf("server: sync %s error (%v)", name, err)
+		}
+	}
+	return reply, nil
+}
+
+func (s *server) sync(name string) error {
+	dn, fn, err := splitDiskAndFile(name)
+	if err != nil {
+		return err
+	}
+
+	d := s.Disk(dn)
+	if d == nil {
+		return errDiskNotFound
+	}
+
+	return d.Sync(fn)
 }
