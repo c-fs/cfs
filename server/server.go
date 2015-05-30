@@ -114,3 +114,36 @@ func (s *server) Remove(ctx context.Context, req *pb.RemoveRequest) (*pb.RemoveR
 	reply := &pb.RemoveReply{}
 	return reply, nil
 }
+
+func (s *server) ReadDir(ctx context.Context, req *pb.ReadDirRequest) (*pb.ReadDirReply, error) {
+	reply := &pb.ReadDirReply{}
+	dn, fn, err := splitDiskAndFile(req.Name)
+	if err != nil {
+		log.Printf("server: readDir error (%v)", err)
+		return reply, nil
+	}
+
+	d := s.Disk(dn)
+	if d == nil {
+		log.Printf("server: readDir error (cannot find disk %s)", dn)
+		return reply, nil
+	}
+
+	stats, err := d.ReadDir(fn)
+	if err != nil {
+		log.Printf("server: readDir error (%v)", err)
+		return reply, nil
+	}
+
+	reply.FileInfos = make([]*pb.FileInfo, len(stats))
+	for i, stat := range stats {
+		reply.FileInfos[i] = &pb.FileInfo{
+			Name: stat.Name(),
+			// TODO: Add size
+			TotalSize: stat.Size(),
+			IsDir:     stat.IsDir(),
+		}
+	}
+
+	return reply, nil
+}
