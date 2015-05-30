@@ -23,6 +23,8 @@ It has these top-level messages:
 	ReadDirReply
 	RemoveRequest
 	RemoveReply
+	MkdirRequest
+	MkdirReply
 	ReconstructSrc
 	ReconstructDst
 	ReconstructRequest
@@ -243,6 +245,32 @@ func (m *RemoveReply) GetError() *Error {
 	return nil
 }
 
+// Mkdir creates a new directory with the specified name. If all is set, Mkdir creates a directory named path,
+// along with any necessary parents. If path is already a directory, Mkdir does nothing.
+type MkdirRequest struct {
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	All  bool   `protobuf:"varint,2,opt,name=all" json:"all,omitempty"`
+}
+
+func (m *MkdirRequest) Reset()         { *m = MkdirRequest{} }
+func (m *MkdirRequest) String() string { return proto1.CompactTextString(m) }
+func (*MkdirRequest) ProtoMessage()    {}
+
+type MkdirReply struct {
+	Error *Error `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
+}
+
+func (m *MkdirReply) Reset()         { *m = MkdirReply{} }
+func (m *MkdirReply) String() string { return proto1.CompactTextString(m) }
+func (*MkdirReply) ProtoMessage()    {}
+
+func (m *MkdirReply) GetError() *Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
 type ReconstructSrc struct {
 	Remote string `protobuf:"bytes,1,opt,name=remote" json:"remote,omitempty"`
 	Name   string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
@@ -331,6 +359,7 @@ type CfsClient interface {
 	Rename(ctx context.Context, in *RenameRequest, opts ...grpc.CallOption) (*RenameReply, error)
 	Remove(ctx context.Context, in *RemoveRequest, opts ...grpc.CallOption) (*RemoveReply, error)
 	ReadDir(ctx context.Context, in *ReadDirRequest, opts ...grpc.CallOption) (*ReadDirReply, error)
+	Mkdir(ctx context.Context, in *MkdirRequest, opts ...grpc.CallOption) (*MkdirReply, error)
 }
 
 type cfsClient struct {
@@ -386,6 +415,15 @@ func (c *cfsClient) ReadDir(ctx context.Context, in *ReadDirRequest, opts ...grp
 	return out, nil
 }
 
+func (c *cfsClient) Mkdir(ctx context.Context, in *MkdirRequest, opts ...grpc.CallOption) (*MkdirReply, error) {
+	out := new(MkdirReply)
+	err := grpc.Invoke(ctx, "/proto.cfs/Mkdir", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Cfs service
 
 type CfsServer interface {
@@ -394,6 +432,7 @@ type CfsServer interface {
 	Rename(context.Context, *RenameRequest) (*RenameReply, error)
 	Remove(context.Context, *RemoveRequest) (*RemoveReply, error)
 	ReadDir(context.Context, *ReadDirRequest) (*ReadDirReply, error)
+	Mkdir(context.Context, *MkdirRequest) (*MkdirReply, error)
 }
 
 func RegisterCfsServer(s *grpc.Server, srv CfsServer) {
@@ -460,6 +499,18 @@ func _Cfs_ReadDir_Handler(srv interface{}, ctx context.Context, codec grpc.Codec
 	return out, nil
 }
 
+func _Cfs_Mkdir_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(MkdirRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CfsServer).Mkdir(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _Cfs_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.cfs",
 	HandlerType: (*CfsServer)(nil),
@@ -483,6 +534,10 @@ var _Cfs_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReadDir",
 			Handler:    _Cfs_ReadDir_Handler,
+		},
+		{
+			MethodName: "Mkdir",
+			Handler:    _Cfs_Mkdir_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},
