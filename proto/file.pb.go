@@ -12,12 +12,15 @@ It has these top-level messages:
 	PathError
 	SyscallError
 	Error
+	FileInfo
 	WriteRequest
 	WriteReply
 	ReadRequest
 	ReadReply
 	RenameRequest
 	RenameReply
+	ReadDirRequest
+	ReadDirReply
 	RemoveRequest
 	RemoveReply
 	ReconstructSrc
@@ -84,6 +87,19 @@ func (m *Error) GetSysErr() *SyscallError {
 	}
 	return nil
 }
+
+type FileInfo struct {
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Size int64  `protobuf:"varint,2,opt,name=size" json:"size,omitempty"`
+	// including block header(CRC), padding zero bytes
+	TotalSize int64 `protobuf:"varint,3,opt,name=total_size" json:"total_size,omitempty"`
+	ModTime   int64 `protobuf:"varint,4,opt,name=mod_time" json:"mod_time,omitempty"`
+	IsDir     bool  `protobuf:"varint,5,opt,name=is_dir" json:"is_dir,omitempty"`
+}
+
+func (m *FileInfo) Reset()         { *m = FileInfo{} }
+func (m *FileInfo) String() string { return proto1.CompactTextString(m) }
+func (*FileInfo) ProtoMessage()    {}
 
 // Write writes len(b) bytes from the given offset. It returns the number
 // of bytes written and an error, if any.
@@ -169,10 +185,42 @@ func (m *RenameReply) GetError() *Error {
 	return nil
 }
 
+type ReadDirRequest struct {
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+}
+
+func (m *ReadDirRequest) Reset()         { *m = ReadDirRequest{} }
+func (m *ReadDirRequest) String() string { return proto1.CompactTextString(m) }
+func (*ReadDirRequest) ProtoMessage()    {}
+
+type ReadDirReply struct {
+	Error     *Error      `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
+	FileInfos []*FileInfo `protobuf:"bytes,2,rep,name=fileInfos" json:"fileInfos,omitempty"`
+}
+
+func (m *ReadDirReply) Reset()         { *m = ReadDirReply{} }
+func (m *ReadDirReply) String() string { return proto1.CompactTextString(m) }
+func (*ReadDirReply) ProtoMessage()    {}
+
+func (m *ReadDirReply) GetError() *Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *ReadDirReply) GetFileInfos() []*FileInfo {
+	if m != nil {
+		return m.FileInfos
+	}
+	return nil
+}
+
 // Remove removes the named file or directory. If there is an error, it will be of type *PathError.
 type RemoveRequest struct {
 	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	// All removes path and any children it contains. It removes everything it can but returns the first error it // encounters. If the path does not exist, RemoveAll returns nil (no error).
+	// All removes path and any children it contains. It removes everything it can but returns the first error it
+	// encounters. If the path does not exist, RemoveAll returns nil (no error).
 	All bool `protobuf:"varint,2,opt,name=all" json:"all,omitempty"`
 }
 
@@ -282,6 +330,7 @@ type CfsClient interface {
 	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error)
 	Rename(ctx context.Context, in *RenameRequest, opts ...grpc.CallOption) (*RenameReply, error)
 	Remove(ctx context.Context, in *RemoveRequest, opts ...grpc.CallOption) (*RemoveReply, error)
+	ReadDir(ctx context.Context, in *ReadDirRequest, opts ...grpc.CallOption) (*ReadDirReply, error)
 }
 
 type cfsClient struct {
@@ -328,6 +377,15 @@ func (c *cfsClient) Remove(ctx context.Context, in *RemoveRequest, opts ...grpc.
 	return out, nil
 }
 
+func (c *cfsClient) ReadDir(ctx context.Context, in *ReadDirRequest, opts ...grpc.CallOption) (*ReadDirReply, error) {
+	out := new(ReadDirReply)
+	err := grpc.Invoke(ctx, "/proto.cfs/ReadDir", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Cfs service
 
 type CfsServer interface {
@@ -335,6 +393,7 @@ type CfsServer interface {
 	Read(context.Context, *ReadRequest) (*ReadReply, error)
 	Rename(context.Context, *RenameRequest) (*RenameReply, error)
 	Remove(context.Context, *RemoveRequest) (*RemoveReply, error)
+	ReadDir(context.Context, *ReadDirRequest) (*ReadDirReply, error)
 }
 
 func RegisterCfsServer(s *grpc.Server, srv CfsServer) {
@@ -389,6 +448,18 @@ func _Cfs_Remove_Handler(srv interface{}, ctx context.Context, codec grpc.Codec,
 	return out, nil
 }
 
+func _Cfs_ReadDir_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(ReadDirRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CfsServer).ReadDir(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _Cfs_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.cfs",
 	HandlerType: (*CfsServer)(nil),
@@ -408,6 +479,10 @@ var _Cfs_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Remove",
 			Handler:    _Cfs_Remove_Handler,
+		},
+		{
+			MethodName: "ReadDir",
+			Handler:    _Cfs_ReadDir_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},
