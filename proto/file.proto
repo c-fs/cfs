@@ -7,6 +7,7 @@ service cfs {
     rpc Read(ReadRequest) returns (ReadReply);
     rpc Rename(RenameRequest) returns (RenameReply);
     rpc Remove(RemoveRequest) returns (RemoveReply);
+    rpc ReadDir(ReadDirRequest) returns (ReadDirReply);
 }
 
 
@@ -28,6 +29,15 @@ message Error {
         PathError pathErr = 1;
         SyscallError sysErr = 2;
     }
+}
+
+message FileInfo {
+    optional string name = 1;
+    optional int64 size = 2;
+    // including block header(CRC), padding zero bytes
+    optional int64 total_size = 3;
+    optional int64 mod_time = 4;
+    optional bool is_dir = 5;
 }
 
 // Write writes len(b) bytes from the given offset. It returns the number
@@ -68,6 +78,15 @@ message RenameRequest {
 
 message RenameReply {
     optional Error error = 1;
+}
+
+message ReadDirRequest {
+    optional string name = 1;
+}
+
+message ReadDirReply {
+    optional Error error = 1;
+    repeated FileInfo fileInfos = 2;
 }
 
 // Remove removes the named file or directory. If there is an error, it will be of type *PathError.
