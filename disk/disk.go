@@ -154,6 +154,17 @@ func (d *Disk) Remove(name string, all bool) error {
 	return os.RemoveAll(name)
 }
 
+func (d *Disk) ReadDir(name string) ([]os.FileInfo, error) {
+	name = path.Join(d.Root, name)
+	f, err := os.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return f.Readdir(0)
+}
+
 // fillBlock fills the partial block starting from the given offset with the
 // given data. It first reads out the block, fills in the given data, and
 // writes the block back.
