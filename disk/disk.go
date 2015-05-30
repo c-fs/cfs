@@ -165,6 +165,14 @@ func (d *Disk) ReadDir(name string) ([]os.FileInfo, error) {
 	return f.Readdir(0)
 }
 
+func (d *Disk) Mkdir(name string, all bool) error {
+	name = path.Join(d.Root, name)
+	if !all {
+		return os.Mkdir(name, 0700)
+	}
+	return os.MkdirAll(name, 0700)
+}
+
 // fillBlock fills the partial block starting from the given offset with the
 // given data. It first reads out the block, fills in the given data, and
 // writes the block back.
