@@ -7,6 +7,7 @@ service cfs {
     rpc Read(ReadRequest) returns (ReadReply);
     rpc Rename(RenameRequest) returns (RenameReply);
     rpc Remove(RemoveRequest) returns (RemoveReply);
+    rpc Sync(SyncRequest) returns (SyncReply);
 }
 
 
@@ -82,6 +83,13 @@ message RemoveReply {
     optional Error error = 1;
 }
 
+message SyncRequest {
+    repeated string names = 1;
+}
+
+message SyncReply {
+    repeated Error errors = 1;
+}
 
 message ReconstructSrc {
     optional string remote = 1;          // remote server (10.10.0.1:15524)
