@@ -8,6 +8,7 @@ service cfs {
     rpc Rename(RenameRequest) returns (RenameReply);
     rpc Remove(RemoveRequest) returns (RemoveReply);
     rpc ReadDir(ReadDirRequest) returns (ReadDirReply);
+    rpc Mkdir(MkdirRequest) returns (MkdirReply);
 }
 
 
@@ -101,6 +102,16 @@ message RemoveReply {
     optional Error error = 1;
 }
 
+// Mkdir creates a new directory with the specified name. If all is set, Mkdir creates a directory named path,
+// along with any necessary parents. If path is already a directory, Mkdir does nothing.
+message MkdirRequest {
+    optional string name = 1;
+    optional bool all = 2;
+}
+
+message MkdirReply {
+    optional Error error = 1;
+}
 
 message ReconstructSrc {
     optional string remote = 1;          // remote server (10.10.0.1:15524)
