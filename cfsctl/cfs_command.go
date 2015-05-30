@@ -34,6 +34,7 @@ func addCommand() {
 	cfsctlCmd.AddCommand(renameCmd)
 	cfsctlCmd.AddCommand(removeCmd)
 	cfsctlCmd.AddCommand(readDirCmd)
+	cfsctlCmd.AddCommand(mkdirCmd)
 }
 
 func setUpGrpcClient() *grpc.ClientConn {

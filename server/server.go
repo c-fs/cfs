@@ -144,6 +144,27 @@ func (s *server) ReadDir(ctx context.Context, req *pb.ReadDirRequest) (*pb.ReadD
 			IsDir:     stat.IsDir(),
 		}
 	}
+	return reply, nil
+}
 
+func (s *server) Mkdir(ctx context.Context, req *pb.MkdirRequest) (*pb.MkdirReply, error) {
+	reply := &pb.MkdirReply{}
+
+	dn, fn, err := splitDiskAndFile(req.Name)
+	if err != nil {
+		log.Printf("server: mkdir error (%v)", err)
+		return reply, nil
+	}
+
+	d := s.Disk(dn)
+	if d == nil {
+		log.Printf("server: mkdir error (cannot find disk %s)", dn)
+		return reply, nil
+	}
+	err = d.Mkdir(fn, req.All)
+	if err != nil {
+		log.Printf("server: mkdir error (%v)", err)
+		return reply, nil
+	}
 	return reply, nil
 }
