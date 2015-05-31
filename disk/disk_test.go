@@ -347,3 +347,105 @@ func TestRemoveNonExistPath(t *testing.T) {
 		}
 	}
 }
+
+func TestMkDirReadDir(t *testing.T) {
+	tests := []struct {
+		diskName  string
+		fileDir   string
+		fileNames []string
+		mkdirAll  bool
+	}{
+		// test one level dir
+		{"disk0", "dir", []string{"file1", "file2", "file3"}, false},
+		// test multiple levels dir
+		{"disk0", "dir/sub/way", []string{"file1", "file2", "file3"}, true},
+	}
+
+	for i, tt := range tests {
+		writeLen := int64(50)
+		d := newTestDisk(tt.diskName, "mkdir", true)
+
+		err := d.Mkdir(tt.fileDir, tt.mkdirAll)
+		if err != nil {
+			t.Errorf("%d: error = %v", i, err)
+		}
+
+		// write
+		p := make([]byte, writeLen)
+		for i := int64(0); i < writeLen; i++ {
+			p[i] = 'X'
+		}
+		for _, fn := range tt.fileNames {
+			_, err := d.WriteAt(path.Join(tt.fileDir, fn), p, 0)
+			if err != nil {
+				t.Errorf("%d: error = %v", i, err)
+			}
+		}
+
+		fis, err := d.ReadDir(tt.fileDir)
+		if err != nil {
+			t.Errorf("%d: error = %v", i, err)
+		}
+
+		// check FileInfo
+		fExist := make(map[string]string)
+		for _, fi := range fis {
+			fExist[fi.Name()] = "pending"
+		}
+		for _, fn := range tt.fileNames {
+			if fExist[fn] == "pending" {
+				fExist[fn] = "exist"
+			} else if fExist[fn] == "exist" {
+				t.Errorf("%d: file %s already exist, ReadDir miss FileInfo", i, fn)
+			} else if fExist[fn] == "" {
+				t.Errorf("%d: file %s not exist, ReadDir miss FileInfo", i, fn)
+			}
+		}
+		d.Remove("", true)
+	}
+}
+
+func TestReadDirNonExist(t *testing.T) {
+	tests := []struct {
+		diskName string
+		name     string
+	}{
+		// file
+		{"disk0", "nowhere"},
+		// dir
+		{"disk0", "no/where"},
+	}
+
+	for i, tt := range tests {
+		d := newTestDisk(tt.diskName, "read-non-exist", true)
+
+		_, err := d.ReadDir(tt.name)
+		if !os.IsNotExist(err) {
+			t.Errorf("%d: expect file not exist, got error = %v", i, err)
+		}
+
+		d.Remove("", true)
+	}
+
+}
+
+func TestMkDirNonExistParent(t *testing.T) {
+	tests := []struct {
+		diskName string
+		fileDir  string
+	}{
+		// test multiple levels dir
+		{"disk0", "dir/sub/way"},
+	}
+
+	for i, tt := range tests {
+		d := newTestDisk(tt.diskName, "mkdir-non-exist-parent", true)
+
+		err := d.Mkdir(tt.fileDir, false)
+		if !os.IsNotExist(err) {
+			t.Errorf("%d: expect file not exist, got error = %v", i, err)
+		}
+
+		d.Remove("", true)
+	}
+}
