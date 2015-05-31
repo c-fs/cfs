@@ -8,6 +8,7 @@ import (
 	"github.com/BurntSushi/toml"
 	pb "github.com/c-fs/cfs/proto"
 	"github.com/c-fs/cfs/server/config"
+	"github.com/c-fs/cfs/stats"
 	"google.golang.org/grpc"
 )
 
@@ -42,6 +43,7 @@ func main() {
 
 	s := grpc.NewServer()
 	pb.RegisterCfsServer(s, cfs)
+	pb.RegisterStatsServer(s, stats.Server())
 	log.Printf("server: ready to serve clients")
 	s.Serve(lis)
 }
