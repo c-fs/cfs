@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	pb "github.com/c-fs/cfs/proto"
+	"github.com/c-fs/cfs/client"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 )
@@ -18,9 +18,8 @@ var readDirCmd = &cobra.Command{
 	Short: "readDir from a cfs node",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		conn := setUpGrpcClient()
-		defer conn.Close()
-		c := pb.NewCfsClient(conn)
+		c := setUpClient()
+		defer c.Close()
 
 		handleReadDir(context.TODO(), c)
 	},
@@ -30,13 +29,13 @@ func init() {
 	readDirCmd.PersistentFlags().StringVarP(&readDirName, "name", "n", "", "readDir name")
 }
 
-func handleReadDir(ctx context.Context, c pb.CfsClient) error {
-	reply, err := c.ReadDir(ctx, &pb.ReadDirRequest{Name: readDirName})
-	if err != nil || reply.Error != nil {
+func handleReadDir(ctx context.Context, c *client.Client) error {
+	fInfos, err := c.ReadDir(ctx, readDirName)
+	if err != nil {
 		log.Fatalf("ReadDir err (%v)", err)
 	}
 
-	for _, stats := range reply.FileInfos {
+	for _, stats := range fInfos {
 		fmt.Printf("%s: %d %t\n", stats.Name, stats.TotalSize, stats.IsDir == true)
 	}
 
