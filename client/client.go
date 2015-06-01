@@ -24,8 +24,8 @@ func New(address string) *Client {
 func (c *Client) Write(
 	ctx context.Context, name string, offset int64, data []byte, isAppend bool,
 ) (int64, error) {
-	pbClientlient := pb.NewCfsClient(c.conn)
-	reply, err := pbClientlient.Write(
+	pbClient := pb.NewCfsClient(c.conn)
+	reply, err := pbClient.Write(
 		ctx,
 		&pb.WriteRequest{Name: name, Offset: offset, Data: data, Append: isAppend},
 	)
@@ -39,8 +39,8 @@ func (c *Client) Write(
 func (c *Client) Read(
 	ctx context.Context, name string, offset, length int64, checkSum uint32,
 ) (int64, []byte, uint32, error) {
-	pbClientlient := pb.NewCfsClient(c.conn)
-	reply, err := pbClientlient.Read(
+	pbClient := pb.NewCfsClient(c.conn)
+	reply, err := pbClient.Read(
 		ctx,
 		&pb.ReadRequest{
 			Name: name, Offset: offset, Length: length, ExpChecksum: checkSum,
@@ -54,8 +54,8 @@ func (c *Client) Read(
 }
 
 func (c *Client) Rename(ctx context.Context, oldName, newName string) error {
-	pbClientlient := pb.NewCfsClient(c.conn)
-	reply, err := pbClientlient.Rename(
+	pbClient := pb.NewCfsClient(c.conn)
+	reply, err := pbClient.Rename(
 		ctx,
 		&pb.RenameRequest{Oldname: oldName, Newname: newName},
 	)
@@ -67,8 +67,8 @@ func (c *Client) Rename(ctx context.Context, oldName, newName string) error {
 }
 
 func (c *Client) Remove(ctx context.Context, name string, all bool) error {
-	pbClientlient := pb.NewCfsClient(c.conn)
-	reply, err := pbClientlient.Remove(ctx, &pb.RemoveRequest{Name: name, All: all})
+	pbClient := pb.NewCfsClient(c.conn)
+	reply, err := pbClient.Remove(ctx, &pb.RemoveRequest{Name: name, All: all})
 
 	if err != nil {
 		return err
@@ -77,8 +77,8 @@ func (c *Client) Remove(ctx context.Context, name string, all bool) error {
 }
 
 func (c *Client) ReadDir(ctx context.Context, name string) ([]*pb.FileInfo, error) {
-	pbClientlient := pb.NewCfsClient(c.conn)
-	reply, err := pbClientlient.ReadDir(ctx, &pb.ReadDirRequest{Name: name})
+	pbClient := pb.NewCfsClient(c.conn)
+	reply, err := pbClient.ReadDir(ctx, &pb.ReadDirRequest{Name: name})
 
 	if err != nil {
 		return nil, err
@@ -87,8 +87,8 @@ func (c *Client) ReadDir(ctx context.Context, name string) ([]*pb.FileInfo, erro
 }
 
 func (c *Client) Mkdir(ctx context.Context, name string, all bool) error {
-	pbClientlient := pb.NewCfsClient(c.conn)
-	reply, err := pbClientlient.Mkdir(ctx, &pb.MkdirRequest{Name: name, All: all})
+	pbClient := pb.NewCfsClient(c.conn)
+	reply, err := pbClient.Mkdir(ctx, &pb.MkdirRequest{Name: name, All: all})
 
 	if err != nil {
 		return err
