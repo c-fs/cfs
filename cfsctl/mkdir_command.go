@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	pb "github.com/c-fs/cfs/proto"
+	"github.com/c-fs/cfs/client"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 )
@@ -19,10 +19,8 @@ var mkdirCmd = &cobra.Command{
 	Short: "make a dir for a cfs node",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		conn := setUpGrpcClient()
-		defer conn.Close()
-		c := pb.NewCfsClient(conn)
-
+		c := setUpClient()
+		defer c.Close()
 		handleMkdir(context.TODO(), c)
 	},
 }
@@ -32,9 +30,9 @@ func init() {
 	mkdirCmd.PersistentFlags().BoolVarP(&mkdirAll, "all", "a", false, "create any necessary parents")
 }
 
-func handleMkdir(ctx context.Context, c pb.CfsClient) error {
-	req, err := c.Mkdir(ctx, &pb.MkdirRequest{Name: mkdirName, All: mkdirAll})
-	if err != nil || req.Error != nil {
+func handleMkdir(ctx context.Context, c *client.Client) error {
+	err := c.Mkdir(ctx, mkdirName, mkdirAll)
+	if err != nil {
 		log.Fatalf("Mkdir err (%v)", err)
 	}
 

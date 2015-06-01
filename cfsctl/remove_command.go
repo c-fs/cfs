@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	pb "github.com/c-fs/cfs/proto"
+	"github.com/c-fs/cfs/client"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 )
@@ -18,9 +18,8 @@ var removeCmd = &cobra.Command{
 	Short: "remove file from a cfs node",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		conn := setUpGrpcClient()
-		defer conn.Close()
-		c := pb.NewCfsClient(conn)
+		c := setUpClient()
+		defer c.Close()
 
 		handleRemove(context.TODO(), c)
 	},
@@ -31,15 +30,12 @@ func init() {
 	removeCmd.PersistentFlags().BoolVarP(&removeAll, "all", "a", false, "remove all files")
 }
 
-func handleRemove(ctx context.Context, c pb.CfsClient) error {
-	_, err := c.Remove(
-		ctx,
-		&pb.RemoveRequest{Name: removeName, All: removeAll},
-	)
+func handleRemove(ctx context.Context, c *client.Client) error {
+	err := c.Remove(ctx, removeName, removeAll)
 	if err != nil {
 		log.Fatalf("Read err (%v)", err)
 	}
-	log.Println("deletion succeeded")
+	log.Println("remove succeeded")
 
 	return nil
 }
