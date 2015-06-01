@@ -21,7 +21,8 @@ var (
 // The checksum of the block is calculated and verified.
 // ErrBadCRC is returned if the checksum is invalid.
 func readBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
-	if int64(len(p)) > bs-crc32Len {
+	payloadLen := int(bs - crc32Len)
+	if len(p) > payloadLen {
 		return 0, ErrPayloadSizeTooLarge
 	}
 	b := make([]byte, crc32Len)
@@ -41,14 +42,35 @@ func readBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
 	}
 
 	crc := binary.BigEndian.Uint32(b)
-
-	n, err = rs.Read(p)
-
-	// Invalid crc
-	if crc != crc32.Checksum(p[:n], crc32cTable) {
-		return 0, ErrBadCRC
+	if len(p) == payloadLen {
+		// fast path for reading into a buffer of payload size
+		n, err = rs.Read(p)
+		if err != nil{
+			return 0, err
+		}
+		// Invalid crc
+		if crc != crc32.Checksum(p[:n], crc32cTable) {
+			return 0, ErrBadCRC
+		}
+		return int64(n), nil
+	} else {
+		// p is smaller than payload size
+		// read into another buffer (so we can compare full block CRC) and copy into p
+		buf := make([]byte, payloadLen)
+		n, err = rs.Read(buf)
+		// If there is an eof returned, two cases may happen
+		// 1. n < len(p) -- we don't have enough data to
+		// fill into p, we should return the eof
+		// 2. n >= len(p) -- we have enough data to fill
+		// into p, shoudln't return the eof
+		if err == io.EOF && n >= len(p){
+			err = nil
+		}
+		if crc != crc32.Checksum(buf[:n], crc32cTable) {
+			return 0, ErrBadCRC
+		}
+		return int64(copy(p, buf[:n])), err
 	}
-	return int64(n), err
 }
 
 // writeBlock writes a full or partial block into ws. len(p) must be smaller than (bs - crc32Len).
