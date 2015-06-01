@@ -102,7 +102,7 @@ func TestReadWriteBlock(t *testing.T) {
 		// write partly block
 		{90, 20, 4, 16},
 		// empty data
-		{100, 20, 0, 0},
+		{0, 20, 0, 0},
 		// empty data with just fit block size
 		{100, 4, 0, 0},
 	}
@@ -117,6 +117,8 @@ func TestReadWriteBlock(t *testing.T) {
 		{20, 20, 0, 40, ErrPayloadSizeTooLarge},
 		// too small block size
 		{20, 1, 0, 0, ErrPayloadSizeTooLarge},
+		// CRC error since it is appending to the last piece of the block
+		{100, 20, 0, 0, ErrBadCRC},
 		// negative index
 		{20, 20, -1, 16, errors.New("invalid argument")},
 	}
