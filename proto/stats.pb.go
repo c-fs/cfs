@@ -34,6 +34,37 @@ func (m *ContainerInfoReply) Reset()         { *m = ContainerInfoReply{} }
 func (m *ContainerInfoReply) String() string { return proto1.CompactTextString(m) }
 func (*ContainerInfoReply) ProtoMessage()    {}
 
+type MetricsRequest struct {
+}
+
+func (m *MetricsRequest) Reset()         { *m = MetricsRequest{} }
+func (m *MetricsRequest) String() string { return proto1.CompactTextString(m) }
+func (*MetricsRequest) ProtoMessage()    {}
+
+type MetricsReply struct {
+	Counters []*Metric `protobuf:"bytes,1,rep,name=counters" json:"counters,omitempty"`
+}
+
+func (m *MetricsReply) Reset()         { *m = MetricsReply{} }
+func (m *MetricsReply) String() string { return proto1.CompactTextString(m) }
+func (*MetricsReply) ProtoMessage()    {}
+
+func (m *MetricsReply) GetCounters() []*Metric {
+	if m != nil {
+		return m.Counters
+	}
+	return nil
+}
+
+type Metric struct {
+	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Val  string `protobuf:"bytes,2,opt,name=val" json:"val,omitempty"`
+}
+
+func (m *Metric) Reset()         { *m = Metric{} }
+func (m *Metric) String() string { return proto1.CompactTextString(m) }
+func (*Metric) ProtoMessage()    {}
+
 func init() {
 }
 
@@ -41,6 +72,7 @@ func init() {
 
 type StatsClient interface {
 	ContainerInfo(ctx context.Context, in *ContainerInfoRequest, opts ...grpc.CallOption) (*ContainerInfoReply, error)
+	Metrics(ctx context.Context, in *MetricsRequest, opts ...grpc.CallOption) (*MetricsReply, error)
 }
 
 type statsClient struct {
@@ -60,10 +92,20 @@ func (c *statsClient) ContainerInfo(ctx context.Context, in *ContainerInfoReques
 	return out, nil
 }
 
+func (c *statsClient) Metrics(ctx context.Context, in *MetricsRequest, opts ...grpc.CallOption) (*MetricsReply, error) {
+	out := new(MetricsReply)
+	err := grpc.Invoke(ctx, "/proto.stats/Metrics", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Stats service
 
 type StatsServer interface {
 	ContainerInfo(context.Context, *ContainerInfoRequest) (*ContainerInfoReply, error)
+	Metrics(context.Context, *MetricsRequest) (*MetricsReply, error)
 }
 
 func RegisterStatsServer(s *grpc.Server, srv StatsServer) {
@@ -82,6 +124,18 @@ func _Stats_ContainerInfo_Handler(srv interface{}, ctx context.Context, codec gr
 	return out, nil
 }
 
+func _Stats_Metrics_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(MetricsRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(StatsServer).Metrics(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _Stats_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.stats",
 	HandlerType: (*StatsServer)(nil),
@@ -89,6 +143,10 @@ var _Stats_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ContainerInfo",
 			Handler:    _Stats_ContainerInfo_Handler,
+		},
+		{
+			MethodName: "Metrics",
+			Handler:    _Stats_Metrics_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},
