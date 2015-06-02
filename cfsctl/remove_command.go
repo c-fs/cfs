@@ -34,7 +34,7 @@ func handleRemove(ctx context.Context, c *client.Client) error {
 	if err != nil {
 		log.Fatalf("Read err (%v)", err)
 	}
-	log.Println("remove succeeded")
+	log.Info("remove succeeded")
 
 	return nil
 }

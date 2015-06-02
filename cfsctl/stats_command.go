@@ -24,6 +24,6 @@ func handleStats(ctx context.Context, c *client.Client) error {
 	if err != nil {
 		log.Fatalf("ContainerInfo err (%v)", err)
 	}
-	log.Printf("Container Info: %+v", info)
+	log.Infof("Container Info: %+v", info)
 	return nil
 }
