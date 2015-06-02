@@ -4,7 +4,6 @@ package stats
 
 import (
 	"encoding/json"
-	"log"
 	"time"
 
 	pb "github.com/c-fs/cfs/proto"
@@ -12,6 +11,7 @@ import (
 	"github.com/google/cadvisor/manager"
 	"github.com/google/cadvisor/storage/memory"
 	"github.com/google/cadvisor/utils/sysfs"
+	"github.com/qiniu/log"
 	"golang.org/x/net/context"
 )
 
@@ -39,17 +39,17 @@ var cmgr manager.Manager
 func init() {
 	sysFs, err := sysfs.NewRealSysFs()
 	if err != nil {
-		log.Printf("stats: failed to create a system interface (%v)", err)
+		log.Infof("stats: failed to create a system interface (%v)", err)
 		return
 	}
 	// TODO: support influxdb or other backend storage
 	cmgr, err = manager.New(memory.New(storageDuration, nil), sysFs)
 	if err != nil {
-		log.Printf("stats: failed to create a container Manager (%v)", err)
+		log.Infof("stats: failed to create a container Manager (%v)", err)
 		return
 	}
 	if err := cmgr.Start(); err != nil {
-		log.Printf("stats: failed to start container manager (%v)", err)
+		log.Infof("stats: failed to start container manager (%v)", err)
 		return
 	}
 }

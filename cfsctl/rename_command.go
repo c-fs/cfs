@@ -1,9 +1,8 @@
 package main
 
 import (
-	"log"
-
 	"github.com/c-fs/cfs/client"
+	"github.com/qiniu/log"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 )
@@ -35,7 +34,7 @@ func handleRename(ctx context.Context, c *client.Client) error {
 	if err != nil {
 		log.Fatalf("Rename err (%v)", err)
 	}
-	log.Printf("rename %s into %s", renameOld, renameNew)
+	log.Infof("rename %s into %s", renameOld, renameNew)
 
 	return nil
 }

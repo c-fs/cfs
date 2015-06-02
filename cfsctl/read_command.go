@@ -1,9 +1,8 @@
 package main
 
 import (
-	"log"
-
 	"github.com/c-fs/cfs/client"
+	"github.com/qiniu/log"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 )
@@ -39,7 +38,7 @@ func handleRead(ctx context.Context, c *client.Client) error {
 	if err != nil {
 		log.Fatalf("Read err (%v)", err)
 	}
-	log.Println(string(data))
+	log.Info(string(data))
 
 	return nil
 }
