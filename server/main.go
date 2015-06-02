@@ -2,13 +2,13 @@ package main
 
 import (
 	"io/ioutil"
-	"log"
 	"net"
 
 	"github.com/BurntSushi/toml"
 	pb "github.com/c-fs/cfs/proto"
 	"github.com/c-fs/cfs/server/config"
 	"github.com/c-fs/cfs/stats"
+	"github.com/qiniu/log"
 	"google.golang.org/grpc"
 )
 

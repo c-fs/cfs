@@ -1,8 +1,7 @@
 package main
 
 import (
-	"log"
-
+	"github.com/qiniu/log"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 )

@@ -1,10 +1,9 @@
 package main
 
 import (
-	"log"
-
 	"github.com/c-fs/cfs/disk"
 	pb "github.com/c-fs/cfs/proto"
+	"github.com/qiniu/log"
 	"golang.org/x/net/context"
 )
 

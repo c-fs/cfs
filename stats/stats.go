@@ -4,7 +4,6 @@ package stats
 
 import (
 	"encoding/json"
-	"log"
 	"time"
 
 	pb "github.com/c-fs/cfs/proto"
@@ -12,6 +11,7 @@ import (
 	"github.com/google/cadvisor/manager"
 	"github.com/google/cadvisor/storage/memory"
 	"github.com/google/cadvisor/utils/sysfs"
+	"github.com/qiniu/log"
 	"golang.org/x/net/context"
 )
 
