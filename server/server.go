@@ -1,10 +1,9 @@
 package main
 
 import (
-	"log"
-
 	"github.com/c-fs/cfs/disk"
 	pb "github.com/c-fs/cfs/proto"
+	"github.com/qiniu/log"
 	"golang.org/x/net/context"
 )
 
@@ -21,13 +20,13 @@ func NewServer() *server {
 func (s *server) Write(ctx context.Context, req *pb.WriteRequest) (*pb.WriteReply, error) {
 	dn, fn, err := splitDiskAndFile(req.Name)
 	if err != nil {
-		log.Printf("server: write error (%v)", err)
+		log.Infof("server: write error (%v)", err)
 		return &pb.WriteReply{}, nil
 	}
 
 	d := s.Disk(dn)
 	if d == nil {
-		log.Printf("server: write error (cannot find disk %s)", dn)
+		log.Infof("server: write error (cannot find disk %s)", dn)
 		return &pb.WriteReply{}, nil
 	}
 
@@ -40,13 +39,13 @@ func (s *server) Write(ctx context.Context, req *pb.WriteRequest) (*pb.WriteRepl
 func (s *server) Read(ctx context.Context, req *pb.ReadRequest) (*pb.ReadReply, error) {
 	dn, fn, err := splitDiskAndFile(req.Name)
 	if err != nil {
-		log.Printf("server: read error (%v)", err)
+		log.Infof("server: read error (%v)", err)
 		return &pb.ReadReply{}, nil
 	}
 
 	d := s.Disk(dn)
 	if d == nil {
-		log.Printf("server: read error (cannot find disk %s)", dn)
+		log.Infof("server: read error (cannot find disk %s)", dn)
 		return &pb.ReadReply{}, nil
 	}
 
@@ -55,7 +54,7 @@ func (s *server) Read(ctx context.Context, req *pb.ReadRequest) (*pb.ReadReply, 
 	n, err := d.ReadAt(fn, data, req.Offset)
 	// TODO: add error
 	if err != nil {
-		log.Printf("server: read error (%v)", err)
+		log.Infof("server: read error (%v)", err)
 		return &pb.ReadReply{}, nil
 	}
 	reply := &pb.ReadReply{BytesRead: int64(n), Data: data}
@@ -65,28 +64,28 @@ func (s *server) Read(ctx context.Context, req *pb.ReadRequest) (*pb.ReadReply, 
 func (s *server) Rename(ctx context.Context, req *pb.RenameRequest) (*pb.RenameReply, error) {
 	dn0, ofn, err := splitDiskAndFile(req.Oldname)
 	if err != nil {
-		log.Printf("server: rename error (%v)", err)
+		log.Infof("server: rename error (%v)", err)
 		return &pb.RenameReply{}, nil
 	}
 	dn1, nfn, err := splitDiskAndFile(req.Newname)
 	if err != nil {
-		log.Printf("server: rename error (%v)", err)
+		log.Infof("server: rename error (%v)", err)
 		return &pb.RenameReply{}, nil
 	}
 	if dn0 != dn1 {
-		log.Printf("server: rename error (%v)", "not same disk")
+		log.Infof("server: rename error (%v)", "not same disk")
 		return &pb.RenameReply{}, nil
 	}
 
 	d := s.Disk(dn0)
 	if d == nil {
-		log.Printf("server: read error (cannot find disk %s)", dn0)
+		log.Infof("server: read error (cannot find disk %s)", dn0)
 		return &pb.RenameReply{}, nil
 	}
 
 	err = d.Rename(ofn, nfn)
 	if err != nil {
-		log.Printf("server: rename error (%v)", err)
+		log.Infof("server: rename error (%v)", err)
 		return &pb.RenameReply{}, nil
 	}
 	reply := &pb.RenameReply{}
@@ -96,19 +95,19 @@ func (s *server) Rename(ctx context.Context, req *pb.RenameRequest) (*pb.RenameR
 func (s *server) Remove(ctx context.Context, req *pb.RemoveRequest) (*pb.RemoveReply, error) {
 	dn, fn, err := splitDiskAndFile(req.Name)
 	if err != nil {
-		log.Printf("server: remove error (%v)", err)
+		log.Infof("server: remove error (%v)", err)
 		return &pb.RemoveReply{}, nil
 	}
 
 	d := s.Disk(dn)
 	if d == nil {
-		log.Printf("server: remove error (cannot find disk %s)", dn)
+		log.Infof("server: remove error (cannot find disk %s)", dn)
 		return &pb.RemoveReply{}, nil
 	}
 
 	err = d.Remove(fn, req.All)
 	if err != nil {
-		log.Printf("server: read error (%v)", err)
+		log.Infof("server: read error (%v)", err)
 		return &pb.RemoveReply{}, nil
 	}
 	reply := &pb.RemoveReply{}
@@ -119,19 +118,19 @@ func (s *server) ReadDir(ctx context.Context, req *pb.ReadDirRequest) (*pb.ReadD
 	reply := &pb.ReadDirReply{}
 	dn, fn, err := splitDiskAndFile(req.Name)
 	if err != nil {
-		log.Printf("server: readDir error (%v)", err)
+		log.Infof("server: readDir error (%v)", err)
 		return reply, nil
 	}
 
 	d := s.Disk(dn)
 	if d == nil {
-		log.Printf("server: readDir error (cannot find disk %s)", dn)
+		log.Infof("server: readDir error (cannot find disk %s)", dn)
 		return reply, nil
 	}
 
 	stats, err := d.ReadDir(fn)
 	if err != nil {
-		log.Printf("server: readDir error (%v)", err)
+		log.Infof("server: readDir error (%v)", err)
 		return reply, nil
 	}
 
@@ -152,18 +151,18 @@ func (s *server) Mkdir(ctx context.Context, req *pb.MkdirRequest) (*pb.MkdirRepl
 
 	dn, fn, err := splitDiskAndFile(req.Name)
 	if err != nil {
-		log.Printf("server: mkdir error (%v)", err)
+		log.Infof("server: mkdir error (%v)", err)
 		return reply, nil
 	}
 
 	d := s.Disk(dn)
 	if d == nil {
-		log.Printf("server: mkdir error (cannot find disk %s)", dn)
+		log.Infof("server: mkdir error (cannot find disk %s)", dn)
 		return reply, nil
 	}
 	err = d.Mkdir(fn, req.All)
 	if err != nil {
-		log.Printf("server: mkdir error (%v)", err)
+		log.Infof("server: mkdir error (%v)", err)
 		return reply, nil
 	}
 	return reply, nil

@@ -1,11 +1,11 @@
 package main
 
 import (
-	"log"
 	"os"
 	"path"
 
 	"github.com/c-fs/cfs/disk"
+	"github.com/qiniu/log"
 )
 
 func (s *server) Disk(name string) *disk.Disk {
@@ -24,6 +24,6 @@ func (s *server) AddDisk(name, root string) error {
 		log.Panicf("server: cannot get current working directory (%v)", err)
 	}
 
-	log.Printf("server: created disk[%s] at root path[%s]", name, path.Join(pwd, root))
+	log.Infof("server: created disk[%s] at root path[%s]", name, path.Join(pwd, root))
 	return nil
 }

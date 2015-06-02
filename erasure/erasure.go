@@ -10,9 +10,10 @@ import _ "github.com/cfs/Jerasure"
 // #cgo !darwin LDFLAGS: -Wl,-unresolved-symbols=ignore-all
 import "C"
 import (
-	"log"
 	"reflect"
 	"unsafe"
+
+	"github.com/qiniu/log"
 )
 
 // void jerasure_bitmatrix_encode(int k, int m, int w, int *bitmatrix,char **data_ptrs, char **coding_ptrs, int size, int packetsize);
