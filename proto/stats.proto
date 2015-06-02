@@ -4,6 +4,7 @@ package proto;
 
 service stats {
 	rpc ContainerInfo(ContainerInfoRequest) returns (ContainerInfoReply);
+	rpc Metrics(MetricsRequest) returns (MetricsReply);
 }
 
 message ContainerInfoRequest {
@@ -12,4 +13,17 @@ message ContainerInfoRequest {
 message ContainerInfoReply {
 	optional string info = 1;
 	optional string error = 2;
+}
+
+message MetricsRequest {
+	// TODO: support return a subset of metrics
+}
+
+message MetricsReply {
+	repeated Metric counters = 1;
+}
+
+message Metric {
+	optional string name = 1;
+	optional string val = 2;
 }
