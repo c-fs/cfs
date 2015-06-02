@@ -1,11 +1,11 @@
 package main
 
 import (
-	"log"
 	"os"
 	"path"
 
 	"github.com/c-fs/cfs/disk"
+	"github.com/qiniu/log"
 )
 
 func (s *server) Disk(name string) *disk.Disk {
