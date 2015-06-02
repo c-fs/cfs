@@ -38,7 +38,7 @@ func handleWrite(ctx context.Context, c *client.Client) error {
 	if err != nil {
 		log.Fatalf("Write err (%v)", err)
 	}
-	log.Printf("%d bytes written to %s at offset %d", n, writeName, writeOffset)
+	log.Infof("%d bytes written to %s at offset %d", n, writeName, writeOffset)
 
 	return nil
 }

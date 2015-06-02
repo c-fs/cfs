@@ -23,14 +23,14 @@ func main() {
 		log.Fatalf("server: configuration file[%s] is not valid (%v)", err)
 	}
 
-	log.Printf("server: starting server...")
+	log.Infof("server: starting server...")
 
 	lis, err := net.Listen("tcp", net.JoinHostPort(conf.Bind, conf.Port))
 	if err != nil {
 		log.Fatalf("server: failed to listen: %v", err)
 	}
 
-	log.Printf("server: listening on %s", net.JoinHostPort(conf.Bind, conf.Port))
+	log.Infof("server: listening on %s", net.JoinHostPort(conf.Bind, conf.Port))
 
 	cfs := NewServer()
 
@@ -44,6 +44,6 @@ func main() {
 	s := grpc.NewServer()
 	pb.RegisterCfsServer(s, cfs)
 	pb.RegisterStatsServer(s, stats.Server())
-	log.Printf("server: ready to serve clients")
+	log.Infof("server: ready to serve clients")
 	s.Serve(lis)
 }
