@@ -91,7 +91,7 @@ func (c *Client) Mkdir(ctx context.Context, name string, all bool) error {
 	return parseErr(reply.Error)
 }
 
-func (c *Client) Stats(ctx context.Context) (string, error) {
+func (c *Client) ContainerInfo(ctx context.Context) (string, error) {
 	reply, err := c.statsClient.ContainerInfo(ctx, &pb.ContainerInfoRequest{})
 
 	if err != nil {
@@ -101,6 +101,15 @@ func (c *Client) Stats(ctx context.Context) (string, error) {
 		return reply.Info, errors.New(reply.Error)
 	}
 	return reply.Info, nil
+}
+
+func (c *Client) Metrics(ctx context.Context) ([]*pb.Metric, error) {
+	reply, err := c.statsClient.Metrics(ctx, &pb.MetricsRequest{})
+
+	if err != nil {
+		return nil, err
+	}
+	return reply.Counters, nil
 }
 
 func (c *Client) Close() {
