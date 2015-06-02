@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/c-fs/cfs/client"
 	pb "github.com/c-fs/cfs/proto"
 	"github.com/qiniu/log"
 	"github.com/spf13/cobra"
@@ -17,9 +18,8 @@ var renameCmd = &cobra.Command{
 	Short: "rename a file on a cfs node",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		conn := setUpGrpcClient()
-		defer conn.Close()
-		c := pb.NewCfsClient(conn)
+		c := setUpClient()
+		defer c.Close()
 
 		handleRename(context.TODO(), c)
 	},
@@ -30,11 +30,8 @@ func init() {
 	renameCmd.PersistentFlags().StringVarP(&renameNew, "newname", "", "", "new name")
 }
 
-func handleRename(ctx context.Context, c pb.CfsClient) error {
-	_, err := c.Rename(
-		ctx,
-		&pb.RenameRequest{Oldname: renameOld, Newname: renameNew},
-	)
+func handleRename(ctx context.Context, c *client.Client) error {
+	err := c.Rename(ctx, renameOld, renameNew)
 	if err != nil {
 		log.Fatalf("Rename err (%v)", err)
 	}

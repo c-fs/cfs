@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/c-fs/cfs/client"
 	"github.com/qiniu/log"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
 )
 
 var (
@@ -37,11 +37,11 @@ func addCommand() {
 	cfsctlCmd.AddCommand(statsCmd)
 }
 
-func setUpGrpcClient() *grpc.ClientConn {
+func setUpClient() *client.Client {
 	// Set up a connection to the server.
-	conn, err := grpc.Dial(address)
+	c, err := client.New(address)
 	if err != nil {
-		log.Fatalf("Cannot connect: %v", err)
+		log.Fatalf("Cannot create cfs client: %v", err)
 	}
-	return conn
+	return c
 }

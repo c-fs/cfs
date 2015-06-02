@@ -1,9 +1,13 @@
 package erasure
 
+import _ "github.com/cfs/Jerasure"
 // #include "jerasure.h"
 // #include "cauchy.h"
-// #cgo CFLAGS: -I../../Jerasure/include
-// #cgo LDFLAGS: -lgf_complete -lJerasure
+// #cgo CXXFLAGS: -std=c++11
+// #cgo CFLAGS: -I../../Jerasure/internal/include
+// #cgo CFLAGS: -I../../gf-complete/internal/include
+// #cgo darwin LDFLAGS: -Wl,-undefined -Wl,dynamic_lookup
+// #cgo !darwin LDFLAGS: -Wl,-unresolved-symbols=ignore-all
 import "C"
 import (
 	"reflect"
