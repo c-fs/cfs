@@ -42,7 +42,7 @@ func setUpClient() *client.Client {
 	// Set up a connection to the server.
 	c, err := client.New(address)
 	if err != nil {
-		log.Fatalf("Cannot create CFS client: %v", err)
+		log.Fatalf("Cannot create cfs client: %v", err)
 	}
 	return c
 }
