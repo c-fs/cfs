@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/c-fs/cfs/client"
+	"github.com/qiniu/log"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 )

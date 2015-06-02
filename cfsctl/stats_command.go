@@ -1,9 +1,8 @@
 package main
 
 import (
-	"log"
-
 	"github.com/c-fs/cfs/client"
+	"github.com/qiniu/log"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/context"
 )
@@ -25,6 +24,6 @@ func handleStats(ctx context.Context, c *client.Client) error {
 	if err != nil {
 		log.Fatalf("ContainerInfo err (%v)", err)
 	}
-	log.Printf("Container Info: %+v", info)
+	log.Infof("Container Info: %+v", info)
 	return nil
 }

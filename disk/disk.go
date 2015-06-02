@@ -2,9 +2,10 @@ package disk
 
 import (
 	"io"
-	"log"
 	"os"
 	"path"
+
+	"github.com/qiniu/log"
 )
 
 // TODO: interface?
