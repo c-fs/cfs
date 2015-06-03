@@ -46,7 +46,7 @@ func readBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
 		// fast path for reading into a buffer of payload size
 		n, err = rs.Read(p)
 		if err != nil{
-			return 0, err
+			return int64(n), err
 		}
 		// Invalid crc
 		if crc != crc32.Checksum(p[:n], crc32cTable) {
@@ -66,10 +66,13 @@ func readBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
 		if err == io.EOF && n >= len(p){
 			err = nil
 		}
+		if err != nil{
+			return int64(copy(p, buf[:n])), err
+		}
 		if crc != crc32.Checksum(buf[:n], crc32cTable) {
 			return 0, ErrBadCRC
 		}
-		return int64(copy(p, buf[:n])), err
+		return int64(copy(p, buf[:n])), nil
 	}
 }
 
