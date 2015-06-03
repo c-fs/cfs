@@ -1,6 +1,7 @@
 package erasure
 
-import _ "github.com/cfs/Jerasure"
+import _ "github.com/c-fs/Jerasure"
+
 // #include "jerasure.h"
 // #include "cauchy.h"
 // #cgo CXXFLAGS: -std=c++11
