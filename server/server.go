@@ -30,8 +30,12 @@ func (s *server) Write(ctx context.Context, req *pb.WriteRequest) (*pb.WriteRepl
 		return &pb.WriteReply{}, nil
 	}
 
-	n, _ := d.WriteAt(fn, req.Data, req.Offset)
+	n, err := d.WriteAt(fn, req.Data, req.Offset)
 	// TODO: add error
+	if err != nil {
+		log.Infof("server: write error (%v)", err)
+		return &pb.WriteReply{}, nil
+	}
 	reply := &pb.WriteReply{BytesWritten: int64(n)}
 	return reply, nil
 }
