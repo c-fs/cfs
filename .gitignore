@@ -27,3 +27,6 @@ _testmain.go
 /server/server
 /server/cfs0000
 /cfsctl/cfsctl
+
+# temporary build path
+/proto/gopath
