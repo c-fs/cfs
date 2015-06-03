@@ -28,11 +28,13 @@ We will **BREAK** everything (data format, API, command line tool, etc.) before 
 
 ## Dependencies
 
-cfs depends on GF-complete and Jerasure for erasure coding.
+cfs depends on [GF-complete](https://github.com/c-fs/gf-complete) and [Jerasure](https://github.com/c-fs/Jerasure/) for erasure coding.
 
-To install GF-complete, see https://github.com/c-fs/gf-complete
-
-To install Jerasue, see https://github.com/c-fs/Jerasure/
+For now, to install these packages:
+``` bash
+go get github.com/c-fs/gf-complete
+go get github.com/c-fs/Jerasure
+```
 
 TODO: write build/MAKE file
 
