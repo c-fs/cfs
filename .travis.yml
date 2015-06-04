@@ -5,7 +5,7 @@ go:
  - release
 
 install:
-  - xargs go get -u < .go.dep
+  - xargs go get -v -u < .go.dep
 
 script:
  - go test -v ./...
