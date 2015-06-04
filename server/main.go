@@ -13,14 +13,15 @@ import (
 )
 
 func main() {
-	data, err := ioutil.ReadFile("default.conf")
+	configfn := "default.conf"
+	data, err := ioutil.ReadFile(configfn)
 	if err != nil {
-		log.Fatalf("server: cannot load configuration file[%s] (%v)", "default.conf", err)
+		log.Fatalf("server: cannot load configuration file[%s] (%v)", configfn, err)
 	}
 
 	var conf config.Server
 	if _, err := toml.Decode(string(data), &conf); err != nil {
-		log.Fatalf("server: configuration file[%s] is not valid (%v)", err)
+		log.Fatalf("server: configuration file[%s] is not valid (%v)", configfn, err)
 	}
 
 	log.Infof("server: starting server...")
