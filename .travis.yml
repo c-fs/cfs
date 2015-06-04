@@ -5,6 +5,7 @@ go:
  - release
 
 install:
+  - go get -u github.com/google/cadvisor
   - xargs go get -v -u < .go.dep
 
 script:
