@@ -3,7 +3,7 @@
 ########################################
 .PHONY: vet
 vet:
-	@go vet -d ./...
+	@go vet ./...
 
 .PHONY: get
 get:
