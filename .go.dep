@@ -2,5 +2,5 @@ github.com/c-fs/Jerasure
 github.com/BurntSushi/toml
 github.com/qiniu/log
 github.com/spf13/cobra
-golang.org/x/net
+golang.org/x/net/context
 google.golang.org/grpc
