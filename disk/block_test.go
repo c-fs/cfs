@@ -76,6 +76,9 @@ func TestCRCErrCheck(t *testing.T) {
 		{20, 10, 1},
 		// small file (no crc)
 		{2, 10, 0},
+		// CRC error since it is appending to the last piece of the block
+		{100, 10, 0},
+
 	}
 	defer os.Remove(tmpTestFile)
 	p := make([]byte, 6)
@@ -117,8 +120,6 @@ func TestReadWriteBlock(t *testing.T) {
 		{20, 20, 0, 40, ErrPayloadSizeTooLarge},
 		// too small block size
 		{20, 1, 0, 0, ErrPayloadSizeTooLarge},
-		// CRC error since it is appending to the last piece of the block
-		{100, 20, 0, 0, ErrBadCRC},
 		// negative index
 		{20, 20, -1, 16, errors.New("invalid argument")},
 	}
