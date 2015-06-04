@@ -14,7 +14,7 @@ import (
 
 func main() {
 	configfn := "default.conf"
-	data, err := ioutil.ReadFile(confFile)
+	data, err := ioutil.ReadFile(configfn)
 	if err != nil {
 		log.Fatalf("server: cannot load configuration file[%s] (%v)", configfn, err)
 	}
