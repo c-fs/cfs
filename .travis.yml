@@ -1,0 +1,11 @@
+language: go
+
+go:
+ - 1.4
+ - release
+
+install:
+  - xargs go get -u < .go.dep
+
+script:
+ - go test -v ./...

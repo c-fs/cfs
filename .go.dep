@@ -1,0 +1,10 @@
+github.com/c-fs/Jerasure
+github.com/BurntSushi/toml
+github.com/google/cadvisor/info/v1
+github.com/google/cadvisor/manager
+github.com/google/cadvisor/storage/memory
+github.com/google/cadvisor/utils/sysfs
+github.com/qiniu/log
+github.com/spf13/cobra
+golang.org/x/net/context
+google.golang.org/grpc
