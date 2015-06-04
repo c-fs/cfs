@@ -3,13 +3,11 @@ language: go
 go:
  - 1.4
 
-before_install:
-  - curl -o cadvisor-0.14.0.zip https://codeload.github.com/google/cadvisor/zip/0.14.0
-  - unzip cadvisor-0.14.0.zip
-  - mv cadvisor-0.14.0 $GOPATH:src/github.com/google/cadvisor
-  - export GOPATH=$GOPATH:$GOPATH/src/github.com/google/cadvisor/Godeps/_workspace
-
 install:
+  - curl -o cadvisor-0.14.0.zip https://codeload.github.com/google/cadvisor/zip/0.14.0
+  - unzip cadvisor-0.14.0.zip 2>/dev/null
+  - mv cadvisor-0.14.0 $GOPATH:src/github.com/google/cadvisor
+  - export GOPATH="$GOPATH:$GOPATH/src/github.com/google/cadvisor/Godeps/_workspace"
   - xargs go get -v -u < .go.dep
 
 script:
