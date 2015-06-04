@@ -6,6 +6,7 @@ go:
 
 install:
   - go get -d -u github.com/google/cadvisor
+  - export GOPATH=$GOPATH:$GOPATH/src/github.com/google/cadvisor/Godeps/_workspace
   - xargs go get -v -u < .go.dep
 
 script:
