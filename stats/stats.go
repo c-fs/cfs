@@ -2,7 +2,6 @@ package stats
 
 import (
 	"encoding/json"
-	"fmt"
 	"sort"
 	"strconv"
 
@@ -16,8 +15,9 @@ func init() {
 }
 
 type CounterType struct {
-	disk string
-	name string
+	disk   string
+	client string
+	name   string
 }
 
 func Counter(name string) CounterType { return CounterType{name: name} }
@@ -27,12 +27,20 @@ func (c CounterType) Disk(disk string) CounterType {
 	return c
 }
 
+func (c CounterType) Client(client string) CounterType {
+	c.client = client
+	return c
+}
+
 func (c CounterType) Add() {
-	if c.disk == "" {
-		metrics.Counter(c.name).Add()
-	} else {
-		metrics.Counter(fmt.Sprintf("%s_%s", c.disk, c.name)).Add()
+	var prefix string
+	if c.disk != "" {
+		prefix = c.disk + "_"
 	}
+	if c.client != "" {
+		prefix = prefix + c.client + "_"
+	}
+	metrics.Counter(prefix + c.name).Add()
 }
 
 func Server() pb.StatsServer { return &server{} }

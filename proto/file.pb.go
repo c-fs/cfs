@@ -10,6 +10,7 @@ It is generated from these files:
 	stats.proto
 
 It has these top-level messages:
+	RequestHeader
 	PathError
 	SyscallError
 	Error
@@ -46,6 +47,14 @@ var _ grpc.ClientConn
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto1.Marshal
+
+type RequestHeader struct {
+	Client string `protobuf:"bytes,1,opt,name=client" json:"client,omitempty"`
+}
+
+func (m *RequestHeader) Reset()         { *m = RequestHeader{} }
+func (m *RequestHeader) String() string { return proto1.CompactTextString(m) }
+func (*RequestHeader) ProtoMessage()    {}
 
 // PathError records an error and the operation and file path that caused it.
 type PathError struct {
@@ -108,15 +117,23 @@ func (*FileInfo) ProtoMessage()    {}
 // of bytes written and an error, if any.
 // Write returns an error when n != len(b).
 type WriteRequest struct {
-	Name   string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Offset int64  `protobuf:"varint,2,opt,name=offset" json:"offset,omitempty"`
-	Data   []byte `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
-	Append bool   `protobuf:"varint,4,opt,name=append" json:"append,omitempty"`
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+	Name   string         `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Offset int64          `protobuf:"varint,3,opt,name=offset" json:"offset,omitempty"`
+	Data   []byte         `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`
+	Append bool           `protobuf:"varint,5,opt,name=append" json:"append,omitempty"`
 }
 
 func (m *WriteRequest) Reset()         { *m = WriteRequest{} }
 func (m *WriteRequest) String() string { return proto1.CompactTextString(m) }
 func (*WriteRequest) ProtoMessage()    {}
+
+func (m *WriteRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type WriteReply struct {
 	Error        *Error `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
@@ -136,15 +153,23 @@ func (m *WriteReply) GetError() *Error {
 
 // Read reads up to length bytes. The checksum of the data must match the exp_checksum if given, or an error is returned.
 type ReadRequest struct {
-	Name        string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Offset      int64  `protobuf:"varint,2,opt,name=offset" json:"offset,omitempty"`
-	Length      int64  `protobuf:"varint,3,opt,name=length" json:"length,omitempty"`
-	ExpChecksum uint32 `protobuf:"fixed32,4,opt,name=exp_checksum" json:"exp_checksum,omitempty"`
+	Header      *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+	Name        string         `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Offset      int64          `protobuf:"varint,3,opt,name=offset" json:"offset,omitempty"`
+	Length      int64          `protobuf:"varint,4,opt,name=length" json:"length,omitempty"`
+	ExpChecksum uint32         `protobuf:"fixed32,5,opt,name=exp_checksum" json:"exp_checksum,omitempty"`
 }
 
 func (m *ReadRequest) Reset()         { *m = ReadRequest{} }
 func (m *ReadRequest) String() string { return proto1.CompactTextString(m) }
 func (*ReadRequest) ProtoMessage()    {}
+
+func (m *ReadRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type ReadReply struct {
 	Error     *Error `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
@@ -165,13 +190,21 @@ func (m *ReadReply) GetError() *Error {
 }
 
 type RenameRequest struct {
-	Oldname string `protobuf:"bytes,1,opt,name=oldname" json:"oldname,omitempty"`
-	Newname string `protobuf:"bytes,2,opt,name=newname" json:"newname,omitempty"`
+	Header  *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+	Oldname string         `protobuf:"bytes,2,opt,name=oldname" json:"oldname,omitempty"`
+	Newname string         `protobuf:"bytes,3,opt,name=newname" json:"newname,omitempty"`
 }
 
 func (m *RenameRequest) Reset()         { *m = RenameRequest{} }
 func (m *RenameRequest) String() string { return proto1.CompactTextString(m) }
 func (*RenameRequest) ProtoMessage()    {}
+
+func (m *RenameRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type RenameReply struct {
 	Error *Error `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
@@ -189,12 +222,20 @@ func (m *RenameReply) GetError() *Error {
 }
 
 type ReadDirRequest struct {
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+	Name   string         `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
 }
 
 func (m *ReadDirRequest) Reset()         { *m = ReadDirRequest{} }
 func (m *ReadDirRequest) String() string { return proto1.CompactTextString(m) }
 func (*ReadDirRequest) ProtoMessage()    {}
+
+func (m *ReadDirRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type ReadDirReply struct {
 	Error     *Error      `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
@@ -221,15 +262,23 @@ func (m *ReadDirReply) GetFileInfos() []*FileInfo {
 
 // Remove removes the named file or directory. If there is an error, it will be of type *PathError.
 type RemoveRequest struct {
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+	Name   string         `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
 	// All removes path and any children it contains. It removes everything it can but returns the first error it
 	// encounters. If the path does not exist, RemoveAll returns nil (no error).
-	All bool `protobuf:"varint,2,opt,name=all" json:"all,omitempty"`
+	All bool `protobuf:"varint,3,opt,name=all" json:"all,omitempty"`
 }
 
 func (m *RemoveRequest) Reset()         { *m = RemoveRequest{} }
 func (m *RemoveRequest) String() string { return proto1.CompactTextString(m) }
 func (*RemoveRequest) ProtoMessage()    {}
+
+func (m *RemoveRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type RemoveReply struct {
 	Error *Error `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
@@ -249,13 +298,21 @@ func (m *RemoveReply) GetError() *Error {
 // Mkdir creates a new directory with the specified name. If all is set, Mkdir creates a directory named path,
 // along with any necessary parents. If path is already a directory, Mkdir does nothing.
 type MkdirRequest struct {
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	All  bool   `protobuf:"varint,2,opt,name=all" json:"all,omitempty"`
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+	Name   string         `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	All    bool           `protobuf:"varint,3,opt,name=all" json:"all,omitempty"`
 }
 
 func (m *MkdirRequest) Reset()         { *m = MkdirRequest{} }
 func (m *MkdirRequest) String() string { return proto1.CompactTextString(m) }
 func (*MkdirRequest) ProtoMessage()    {}
+
+func (m *MkdirRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 type MkdirReply struct {
 	Error *Error `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
@@ -273,30 +330,47 @@ func (m *MkdirReply) GetError() *Error {
 }
 
 type ReconstructSrc struct {
-	Remote string `protobuf:"bytes,1,opt,name=remote" json:"remote,omitempty"`
-	Name   string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+	Remote string         `protobuf:"bytes,2,opt,name=remote" json:"remote,omitempty"`
+	Name   string         `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
 }
 
 func (m *ReconstructSrc) Reset()         { *m = ReconstructSrc{} }
 func (m *ReconstructSrc) String() string { return proto1.CompactTextString(m) }
 func (*ReconstructSrc) ProtoMessage()    {}
 
+func (m *ReconstructSrc) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
 type ReconstructDst struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
 	// The destination should always be local server.
-	Name string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
 }
 
 func (m *ReconstructDst) Reset()         { *m = ReconstructDst{} }
 func (m *ReconstructDst) String() string { return proto1.CompactTextString(m) }
 func (*ReconstructDst) ProtoMessage()    {}
 
+func (m *ReconstructDst) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
 // http://web.eecs.utk.edu/~plank/plank/papers/2013-02-11-FAST-Tutorial.pdf
 // https://www.usenix.org/legacy/events/fast09/tech/full_papers/plank/plank_html/
 // Optimized for Cauchy Reed-Solomon (CRS) Codes, but should also be applied to
 // RAID5 and RAID6
 type ReconstructRequest struct {
-	Srcs []*ReconstructSrc `protobuf:"bytes,1,rep,name=srcs" json:"srcs,omitempty"`
-	Dsts []*ReconstructDst `protobuf:"bytes,2,rep,name=dsts" json:"dsts,omitempty"`
+	Header *RequestHeader    `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+	Srcs   []*ReconstructSrc `protobuf:"bytes,2,rep,name=srcs" json:"srcs,omitempty"`
+	Dsts   []*ReconstructDst `protobuf:"bytes,3,rep,name=dsts" json:"dsts,omitempty"`
 	// each src has multiple strips. the length of src must be
 	// a multiply of stripe_size or it should be zero filled.
 	//
@@ -305,20 +379,27 @@ type ReconstructRequest struct {
 	// w MUST be in the range [1, 32]
 	//
 	// https://www.usenix.org/legacy/events/fast09/tech/full_papers/plank/plank_html Section 2.2
-	StripSize  int32 `protobuf:"varint,3,opt,name=strip_size" json:"strip_size,omitempty"`
-	PacketSize int32 `protobuf:"varint,4,opt,name=packet_size" json:"packet_size,omitempty"`
-	W          int32 `protobuf:"varint,5,opt,name=w" json:"w,omitempty"`
+	StripSize  int32 `protobuf:"varint,4,opt,name=strip_size" json:"strip_size,omitempty"`
+	PacketSize int32 `protobuf:"varint,5,opt,name=packet_size" json:"packet_size,omitempty"`
+	W          int32 `protobuf:"varint,6,opt,name=w" json:"w,omitempty"`
 	// wk * wn matrix of bits
 	// k is the number of sources, n is the number of dests.
 	// bit_matrix[i][j] = i * k * w + j
 	// TODO: make this a dense bytes array and each bytes contains
 	// 8 bits.
-	BitMatrix []int32 `protobuf:"varint,6,rep,name=bit_matrix" json:"bit_matrix,omitempty"`
+	BitMatrix []int32 `protobuf:"varint,7,rep,name=bit_matrix" json:"bit_matrix,omitempty"`
 }
 
 func (m *ReconstructRequest) Reset()         { *m = ReconstructRequest{} }
 func (m *ReconstructRequest) String() string { return proto1.CompactTextString(m) }
 func (*ReconstructRequest) ProtoMessage()    {}
+
+func (m *ReconstructRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
 
 func (m *ReconstructRequest) GetSrcs() []*ReconstructSrc {
 	if m != nil {
