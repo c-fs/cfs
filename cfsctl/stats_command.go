@@ -20,10 +20,17 @@ var statsCmd = &cobra.Command{
 }
 
 func handleStats(ctx context.Context, c *client.Client) error {
-	info, err := c.Stats(ctx)
+	info, err := c.ContainerInfo(ctx)
 	if err != nil {
-		log.Fatalf("ContainerInfo err (%v)", err)
+		log.Printf("ContainerInfo err (%v)", err)
+	} else {
+		log.Printf("Container Info: %+v", info)
 	}
-	log.Infof("Container Info: %+v", info)
+	ms, err := c.Metrics(ctx)
+	if err != nil {
+		log.Printf("Metrics err (%v)", err)
+	} else {
+		log.Printf("Metrics: %+v", ms)
+	}
 	return nil
 }

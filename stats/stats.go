@@ -1,56 +1,37 @@
-// +build linux
-
 package stats
 
 import (
 	"encoding/json"
-	"time"
+	"fmt"
+	"sort"
+	"strconv"
 
 	pb "github.com/c-fs/cfs/proto"
-	"github.com/google/cadvisor/info/v1"
-	"github.com/google/cadvisor/manager"
-	"github.com/google/cadvisor/storage/memory"
-	"github.com/google/cadvisor/utils/sysfs"
-	"github.com/qiniu/log"
+	"github.com/codahale/metrics"
 	"golang.org/x/net/context"
 )
 
-const (
-	// TODO: make container name configurable
-	//
-	// The recommended way to run cfs is putting the process in an
-	// exclusive container, which has its own cgroup in each hierarchy.
-	// It helps cfs to monitor its resource usage.
-	//
-	// It asks users to specify container name instead of detecting
-	// cgroup that has the process automatically because it may meet
-	// strange cases:
-	// 1. cfs process may be in different cpu/memory/etc cgroups
-	// 2. the cgroup that includes cfs may have other processes
-	// So it hopes that user could take care of it.
-	DefaultContainerName = "/cfs"
-
-	statsToCacheNum = 60
-	storageDuration = 2 * time.Minute
-)
-
-var cmgr manager.Manager
-
 func init() {
-	sysFs, err := sysfs.NewRealSysFs()
-	if err != nil {
-		log.Infof("stats: failed to create a system interface (%v)", err)
-		return
-	}
-	// TODO: support influxdb or other backend storage
-	cmgr, err = manager.New(memory.New(storageDuration, nil), sysFs)
-	if err != nil {
-		log.Infof("stats: failed to create a container Manager (%v)", err)
-		return
-	}
-	if err := cmgr.Start(); err != nil {
-		log.Infof("stats: failed to start container manager (%v)", err)
-		return
+	initContainerManager()
+}
+
+type CounterType struct {
+	disk string
+	name string
+}
+
+func Counter(name string) CounterType { return CounterType{name: name} }
+
+func (c CounterType) Disk(disk string) CounterType {
+	c.disk = disk
+	return c
+}
+
+func (c CounterType) Add() {
+	if c.disk == "" {
+		metrics.Counter(c.name).Add()
+	} else {
+		metrics.Counter(fmt.Sprintf("%s_%s", c.disk, c.name)).Add()
 	}
 }
 
@@ -59,8 +40,7 @@ func Server() pb.StatsServer { return &server{} }
 type server struct{}
 
 func (s *server) ContainerInfo(ctx context.Context, req *pb.ContainerInfoRequest) (*pb.ContainerInfoReply, error) {
-	infoReq := v1.DefaultContainerInfoRequest()
-	info, err := cmgr.GetContainerInfo(DefaultContainerName, &infoReq)
+	info, err := containerInfo()
 	if err != nil {
 		return &pb.ContainerInfoReply{Error: err.Error()}, nil
 	}
@@ -70,3 +50,20 @@ func (s *server) ContainerInfo(ctx context.Context, req *pb.ContainerInfoRequest
 	}
 	return &pb.ContainerInfoReply{Info: string(b)}, nil
 }
+
+func (s *server) Metrics(ctx context.Context, req *pb.MetricsRequest) (*pb.MetricsReply, error) {
+	counters, _ := metrics.Snapshot()
+	cms := make([]*pb.Metric, 0, len(counters))
+	for n, v := range counters {
+		cms = append(cms, &pb.Metric{Name: n, Val: strconv.FormatUint(v, 10)})
+	}
+	sort.Sort(metricsByName(cms))
+	r := &pb.MetricsReply{Counters: cms}
+	return r, nil
+}
+
+type metricsByName []*pb.Metric
+
+func (p metricsByName) Len() int           { return len(p) }
+func (p metricsByName) Less(i, j int) bool { return p[i].Name < p[j].Name }
+func (p metricsByName) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
