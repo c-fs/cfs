@@ -1,19 +1,18 @@
 ########################################
 # cfs
 ########################################
+.PHONY: vet
+vet:
+	@go vet ./...
 
-ORG_PATH:=github.com/c-fs
-REPO_PATH:=$(ORG_PATH)/cfs
-
-$(eval TEST := $(shell cd ../../.. && find $(REPO_PATH) -name '*_test.go' |  xargs -L 1 dirname | uniq | sort))
+.PHONY: get
+get:
+	@go get -d ./...
 
 .PHONY: build
-# TODO
+build: get
+	@go build -d ./...
 
 .PHONY: test
-test: go-vet build
-	go test -p 8 -race $(TEST)
-
-.PHONY: go-vet
-go-vet:
-	@find . -name '*.go' | xargs -L 1 go tool vet
+test: vet build
+	go test -p 8 -race -d ./...
