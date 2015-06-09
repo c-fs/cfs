@@ -17,3 +17,7 @@ test: go-vet build
 .PHONY: go-vet
 go-vet:
 	@find . -name '*.go' | xargs -L 1 go tool vet
+
+.PHONY: proto
+proto:
+	protoc -I proto proto/*.proto --go_out=plugins=grpc:proto
