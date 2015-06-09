@@ -14,15 +14,15 @@ service cfs {
 
 // PathError records an error and the operation and file path that caused it.
 message PathError {
-    optional string op = 1;
-    optional string path = 2;
-    optional string error = 3;
+    string op = 1;
+    string path = 2;
+    string error = 3;
 }
 
 // SyscallError records an error from a specific system call.
 message SyscallError {
-    optional string syscall = 1;
-    optional string error = 2;
+    string syscall = 1;
+    string error = 2;
 }
 
 message Error {
@@ -33,94 +33,94 @@ message Error {
 }
 
 message FileInfo {
-    optional string name = 1;
-    optional int64 size = 2;
+    string name = 1;
+    int64 size = 2;
     // including block header(CRC), padding zero bytes
-    optional int64 total_size = 3;
-    optional int64 mod_time = 4;
-    optional bool is_dir = 5;
+    int64 total_size = 3;
+    int64 mod_time = 4;
+    bool is_dir = 5;
 }
 
 // Write writes len(b) bytes from the given offset. It returns the number
 // of bytes written and an error, if any.
 // Write returns an error when n != len(b).
 message WriteRequest {
-    optional string name = 1;
-    optional int64 offset = 2;
-    optional bytes data = 3;
+    string name = 1;
+    int64 offset = 2;
+    bytes data = 3;
     
-    optional bool append = 4;
+    bool append = 4;
 }
 
 message WriteReply {
-    optional Error error = 1;
-    optional int64 bytes_written = 2;
+    Error error = 1;
+    int64 bytes_written = 2;
 }
 
 // Read reads up to length bytes. The checksum of the data must match the exp_checksum if given, or an error is returned.
 message ReadRequest {
-    optional string name = 1;
-    optional int64 offset = 2;
-    optional int64 length = 3;
-    optional fixed32 exp_checksum = 4;
+    string name = 1;
+    int64 offset = 2;
+    int64 length = 3;
+    fixed32 exp_checksum = 4;
 }
 
 message ReadReply {
-    optional Error error = 1;
-    optional int64 bytes_read = 2;
-    optional bytes data = 3;
-    optional fixed32 checksum = 4;
+    Error error = 1;
+    int64 bytes_read = 2;
+    bytes data = 3;
+    fixed32 checksum = 4;
 }
 
 message RenameRequest {
-    optional string oldname = 1;
-    optional string newname = 2;
+    string oldname = 1;
+    string newname = 2;
 }
 
 message RenameReply {
-    optional Error error = 1;
+    Error error = 1;
 }
 
 message ReadDirRequest {
-    optional string name = 1;
+    string name = 1;
 }
 
 message ReadDirReply {
-    optional Error error = 1;
+    Error error = 1;
     repeated FileInfo fileInfos = 2;
 }
 
 // Remove removes the named file or directory. If there is an error, it will be of type *PathError.
 message RemoveRequest {
-    optional string name = 1;
+    string name = 1;
     // All removes path and any children it contains. It removes everything it can but returns the first error it 
     // encounters. If the path does not exist, RemoveAll returns nil (no error).
-    optional bool all = 2;
+    bool all = 2;
 }
 
 message RemoveReply {
-    optional Error error = 1;
+    Error error = 1;
 }
 
 // Mkdir creates a new directory with the specified name. If all is set, Mkdir creates a directory named path,
 // along with any necessary parents. If path is already a directory, Mkdir does nothing.
 message MkdirRequest {
-    optional string name = 1;
-    optional bool all = 2;
+    string name = 1;
+    bool all = 2;
 }
 
 message MkdirReply {
-    optional Error error = 1;
+    Error error = 1;
 }
 
 message ReconstructSrc {
-    optional string remote = 1;          // remote server (10.10.0.1:15524)
-    optional string name = 2;
+    string remote = 1;          // remote server (10.10.0.1:15524)
+    string name = 2;
 }
 
 message ReconstructDst {
     // The destination should always be local server.
-    optional string name = 1;
+    string name = 1;
 }
 
 // http://web.eecs.utk.edu/~plank/plank/papers/2013-02-11-FAST-Tutorial.pdf
@@ -139,9 +139,9 @@ message ReconstructRequest {
     // w MUST be in the range [1, 32]
     //
     // https://www.usenix.org/legacy/events/fast09/tech/full_papers/plank/plank_html Section 2.2
-    optional int32 strip_size = 3;
-    optional int32 packet_size = 4;
-    optional int32 w = 5;
+    int32 strip_size = 3;
+    int32 packet_size = 4;
+    int32 w = 5;
 
     // wk * wn matrix of bits
     // k is the number of sources, n is the number of dests.
@@ -152,5 +152,5 @@ message ReconstructRequest {
 }
 
 message ReconstructReply {
-    optional Error error = 1;
+    Error error = 1;
 }
