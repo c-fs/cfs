@@ -3,6 +3,7 @@ package disk
 import (
 	"bytes"
 	"os"
+	"io"
 	"path"
 	"testing"
 )
@@ -446,6 +447,36 @@ func TestMkDirNonExistParent(t *testing.T) {
 			t.Errorf("%d: expect file not exist, got error = %v", i, err)
 		}
 
+		d.Remove("", true)
+	}
+}
+
+func TestReadEOF(t *testing.T) {
+	tests := []struct {
+		diskName string
+		fileName string
+		writeLen int64
+		readLen  int64
+	}{
+		{"disk0", "file", 10, 11},
+		{"disk0", "file", 4096 * 2, 4096 * 2 + 1},
+	}
+
+	for i, tt := range tests {
+		d := newTestDisk(tt.diskName, "mkdir-non-exist-parent", true)
+		p := make([]byte, tt.writeLen)
+		for i := int64(0); i < tt.writeLen; i++ {
+			p[i] = 'X'
+		}
+		d.WriteAt(tt.fileName, p, 0)
+		buf := make([]byte, tt.readLen)
+		read, err := d.ReadAt(tt.fileName, buf, 0)
+		if int64(read) != tt.writeLen {
+			t.Errorf("%d: read %d bytes != %d bytes written", i, read, tt.readLen)
+		}
+		if err != io.EOF {
+			t.Errorf("%d: expect EOF, %v returned", i, err)
+		}
 		d.Remove("", true)
 	}
 }
