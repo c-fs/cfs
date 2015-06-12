@@ -55,10 +55,13 @@ func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 		p = p[copied:]
 		// We want to exit the loop for 3 cases:
 		// 1. There is an error reading block
-		// 2. We read a partial block -- reach the end of the file
-		// 3. We can't copy into p anymore -- p is filled up
-		if err != nil || n < bsize-crc32Len || len(p) == 0 {
+		// 2. We can't copy into p anymore -- p is filled up
+		if err != nil || len(p) == 0 {
 			return read + copied, err
+		}
+		// 3. We read a partial block -- reach the end of the file
+		if n < bsize-crc32Len {
+			return read + copied, io.EOF
 		}
 		read += copied
 		stIdx++
