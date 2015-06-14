@@ -34,6 +34,7 @@ func addCommand() {
 	cfsctlCmd.AddCommand(removeCmd)
 	cfsctlCmd.AddCommand(readDirCmd)
 	cfsctlCmd.AddCommand(mkdirCmd)
+	cfsctlCmd.AddCommand(copyCmd)
 	cfsctlCmd.AddCommand(statsCmd)
 }
 

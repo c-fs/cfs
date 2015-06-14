@@ -26,6 +26,8 @@ It has these top-level messages:
 	RemoveReply
 	MkdirRequest
 	MkdirReply
+	CopyRequest
+	CopyReply
 	ReconstructSrc
 	ReconstructDst
 	ReconstructRequest
@@ -272,6 +274,30 @@ func (m *MkdirReply) GetError() *Error {
 	return nil
 }
 
+type CopyRequest struct {
+	Src string `protobuf:"bytes,1,opt,name=src" json:"src,omitempty"`
+	Dst string `protobuf:"bytes,2,opt,name=dst" json:"dst,omitempty"`
+}
+
+func (m *CopyRequest) Reset()         { *m = CopyRequest{} }
+func (m *CopyRequest) String() string { return proto1.CompactTextString(m) }
+func (*CopyRequest) ProtoMessage()    {}
+
+type CopyReply struct {
+	Error *Error `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
+}
+
+func (m *CopyReply) Reset()         { *m = CopyReply{} }
+func (m *CopyReply) String() string { return proto1.CompactTextString(m) }
+func (*CopyReply) ProtoMessage()    {}
+
+func (m *CopyReply) GetError() *Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
 type ReconstructSrc struct {
 	Remote string `protobuf:"bytes,1,opt,name=remote" json:"remote,omitempty"`
 	Name   string `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
@@ -361,6 +387,7 @@ type CfsClient interface {
 	Remove(ctx context.Context, in *RemoveRequest, opts ...grpc.CallOption) (*RemoveReply, error)
 	ReadDir(ctx context.Context, in *ReadDirRequest, opts ...grpc.CallOption) (*ReadDirReply, error)
 	Mkdir(ctx context.Context, in *MkdirRequest, opts ...grpc.CallOption) (*MkdirReply, error)
+	Copy(ctx context.Context, in *CopyRequest, opts ...grpc.CallOption) (*CopyReply, error)
 }
 
 type cfsClient struct {
@@ -425,6 +452,15 @@ func (c *cfsClient) Mkdir(ctx context.Context, in *MkdirRequest, opts ...grpc.Ca
 	return out, nil
 }
 
+func (c *cfsClient) Copy(ctx context.Context, in *CopyRequest, opts ...grpc.CallOption) (*CopyReply, error) {
+	out := new(CopyReply)
+	err := grpc.Invoke(ctx, "/proto.cfs/Copy", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // Server API for Cfs service
 
 type CfsServer interface {
@@ -434,6 +470,7 @@ type CfsServer interface {
 	Remove(context.Context, *RemoveRequest) (*RemoveReply, error)
 	ReadDir(context.Context, *ReadDirRequest) (*ReadDirReply, error)
 	Mkdir(context.Context, *MkdirRequest) (*MkdirReply, error)
+	Copy(context.Context, *CopyRequest) (*CopyReply, error)
 }
 
 func RegisterCfsServer(s *grpc.Server, srv CfsServer) {
@@ -512,6 +549,18 @@ func _Cfs_Mkdir_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, 
 	return out, nil
 }
 
+func _Cfs_Copy_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(CopyRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CfsServer).Copy(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 var _Cfs_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "proto.cfs",
 	HandlerType: (*CfsServer)(nil),
@@ -539,6 +588,10 @@ var _Cfs_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Mkdir",
 			Handler:    _Cfs_Mkdir_Handler,
+		},
+		{
+			MethodName: "Copy",
+			Handler:    _Cfs_Copy_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{},

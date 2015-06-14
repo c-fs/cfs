@@ -1,11 +1,20 @@
 package main
 
 import (
+	"errors"
+	"io"
+	"os"
+
 	"github.com/c-fs/cfs/disk"
 	pb "github.com/c-fs/cfs/proto"
 	"github.com/c-fs/cfs/stats"
 	"github.com/qiniu/log"
 	"golang.org/x/net/context"
+)
+
+var (
+	errNotFoundDisk  = errors.New("server: not found disk")
+	errCopyIdentical = errors.New("server: copy src and dst are identical")
 )
 
 type server struct {
@@ -156,6 +165,44 @@ func (s *server) ReadDir(ctx context.Context, req *pb.ReadDirRequest) (*pb.ReadD
 	return reply, nil
 }
 
+func (s *server) Copy(ctx context.Context, req *pb.CopyRequest) (*pb.CopyReply, error) {
+	reply := &pb.CopyReply{}
+
+	if req.Src == req.Dst {
+		return reply, errCopyIdentical
+	}
+
+	d1, f1, err := s.getDiskAndFile(req.Src)
+	if err != nil {
+		return reply, err
+	}
+
+	d2, f2, err := s.getDiskAndFile(req.Dst)
+	if err != nil {
+		return reply, err
+	}
+
+	var (
+		r = NewOffReader(func(b []byte, off int64) (int, error) {
+			return d1.ReadAt(f1, b, off)
+		})
+
+		w = NewOffWriter(func(b []byte, off int64) (int, error) {
+			return d2.WriteAt(f2, b, off)
+		})
+	)
+
+	stats.Counter("cfs_copy_ops_total").Add()
+	if _, err := io.Copy(w, r); err != nil {
+		log.Errorf("server: copy %s => %s failed - %v", req.Src, req.Dst, err)
+		if err2 := d2.Remove(req.Dst, false); err2 != nil && !os.IsNotExist(err2) {
+			log.Errorf("server: remove %s failed - %v", req.Dst, err2)
+		}
+		return reply, err
+	}
+	return reply, nil
+}
+
 func (s *server) Mkdir(ctx context.Context, req *pb.MkdirRequest) (*pb.MkdirReply, error) {
 	reply := &pb.MkdirReply{}
 
@@ -177,4 +224,18 @@ func (s *server) Mkdir(ctx context.Context, req *pb.MkdirRequest) (*pb.MkdirRepl
 		return reply, nil
 	}
 	return reply, nil
+}
+
+func (s *server) getDiskAndFile(name string) (d *disk.Disk, fname string, err error) {
+	dn, fname, err := splitDiskAndFile(name)
+	if err != nil {
+		log.Warnf("server: getDiskAndFile %s failed - %v", name, err)
+		return
+	}
+	if d = s.Disk(dn); d == nil {
+		log.Warnf("server: getDiskAndFile %s, not found disk", dn)
+		err = errNotFoundDisk
+		return
+	}
+	return
 }

@@ -9,6 +9,7 @@ service cfs {
     rpc Remove(RemoveRequest) returns (RemoveReply);
     rpc ReadDir(ReadDirRequest) returns (ReadDirReply);
     rpc Mkdir(MkdirRequest) returns (MkdirReply);
+    rpc Copy(CopyRequest) returns (CopyReply);
 }
 
 
@@ -110,6 +111,15 @@ message MkdirRequest {
 }
 
 message MkdirReply {
+    Error error = 1;
+}
+
+message CopyRequest {
+    string src = 1;
+    string dst = 2;
+}
+
+message CopyReply {
     Error error = 1;
 }
 

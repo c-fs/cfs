@@ -91,6 +91,15 @@ func (c *Client) Mkdir(ctx context.Context, name string, all bool) error {
 	return parseErr(reply.Error)
 }
 
+func (c *Client) Copy(ctx context.Context, src, dst string) error {
+	reply, err := c.fileClient.Copy(ctx, &pb.CopyRequest{Src: src, Dst: dst})
+
+	if err != nil {
+		return err
+	}
+	return parseErr(reply.Error)
+}
+
 func (c *Client) ContainerInfo(ctx context.Context) (string, error) {
 	reply, err := c.statsClient.ContainerInfo(ctx, &pb.ContainerInfoRequest{})
 
