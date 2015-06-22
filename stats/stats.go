@@ -16,7 +16,7 @@ func init() {
 
 type CounterType struct {
 	disk   string
-	client string
+	client int64
 	name   string
 }
 
@@ -27,8 +27,8 @@ func (c CounterType) Disk(disk string) CounterType {
 	return c
 }
 
-func (c CounterType) Client(client string) CounterType {
-	c.client = client
+func (c CounterType) Client(id int64) CounterType {
+	c.client = id
 	return c
 }
 
@@ -36,9 +36,6 @@ func (c CounterType) Add() {
 	var prefix string
 	if c.disk != "" {
 		prefix = c.disk + "_"
-	}
-	if c.client != "" {
-		prefix = prefix + c.client + "_"
 	}
 	metrics.Counter(prefix + c.name).Add()
 }

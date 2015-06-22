@@ -39,7 +39,7 @@ func addCommand() {
 
 func setUpClient() *client.Client {
 	// Set up a connection to the server.
-	c, err := client.New("cfsctl", address)
+	c, err := client.New(0x1234, address)
 	if err != nil {
 		log.Fatalf("Cannot create cfs client: %v", err)
 	}

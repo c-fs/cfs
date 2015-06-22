@@ -13,7 +13,7 @@ service cfs {
 
 
 message requestHeader {
-   string client = 1;
+   int64 clientID = 1;
 }
 
 // PathError records an error and the operation and file path that caused it.

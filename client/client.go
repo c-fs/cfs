@@ -15,8 +15,8 @@ type Client struct {
 	statsClient pb.StatsClient
 }
 
-func New(name, address string) (*Client, error) {
-	header := &pb.RequestHeader{Client: name}
+func New(clientID int64, address string) (*Client, error) {
+	header := &pb.RequestHeader{ClientID: clientID}
 	conn, err := grpc.Dial(address)
 	if err != nil {
 		return nil, err

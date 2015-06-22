@@ -49,7 +49,7 @@ var _ grpc.ClientConn
 var _ = proto1.Marshal
 
 type RequestHeader struct {
-	Client string `protobuf:"bytes,1,opt,name=client" json:"client,omitempty"`
+	ClientID int64 `protobuf:"varint,1,opt,name=clientID" json:"clientID,omitempty"`
 }
 
 func (m *RequestHeader) Reset()         { *m = RequestHeader{} }
