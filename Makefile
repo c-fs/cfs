@@ -21,3 +21,8 @@ go-vet:
 .PHONY: proto
 proto:
 	protoc -I proto proto/*.proto --go_out=plugins=grpc:proto
+
+.PHONY: docker
+docker:
+	go build -o cfs -a ${REPO_PATH}/server
+	docker build -t c-fs/cfs .

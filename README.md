@@ -60,6 +60,26 @@ cfs creates a `/cfs0` disk with root path `/cfs0000` by default.
 
 TODO: make all these configurable.
 
+#### Run Server in a Docker Container
+
+You can run a cfs to provide file service in container easily:
+
+```
+make docker
+
+sudo docker run \
+  --volume=/:/rootfs:ro \
+  --volume=/var/run:/var/run:rw \
+  --volume=/sys:/sys:ro \
+  --volume=/var/lib/docker/:/var/lib/docker:ro \
+  --publish=15524:15524 \
+  --detach=true \
+  --name=cfs \
+  c-fs/cfs
+```
+
+cfs is now running in the background on `http://localhost:15524`. For development, you can replace `--detach=true` with `-ti` to let it run as an interactive process.
+
 #### Write and Read file
 
 ``` bash
