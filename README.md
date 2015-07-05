@@ -72,6 +72,7 @@ sudo docker run \
   --volume=/var/run:/var/run:rw \
   --volume=/sys:/sys:ro \
   --volume=/var/lib/docker/:/var/lib/docker:ro \
+  --volume=/tmp:/tmp:rw \
   --publish=15524:15524 \
   --detach=true \
   --name=cfs \

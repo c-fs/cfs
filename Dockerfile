@@ -1,4 +1,4 @@
-FROM progrium/busybox
+FROM scratch
 
 ADD cfs /
 ADD server/default.conf /
