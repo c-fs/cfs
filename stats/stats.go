@@ -11,9 +11,26 @@ import (
 	"golang.org/x/net/context"
 )
 
+// The recommended way to run cfs is putting the process in an
+// exclusive container, which has its own cgroup in each hierarchy.
+// It helps cfs to monitor its resource usage.
+//
+// It asks users to specify container name instead of detecting
+// cgroup that has the process automatically because it may meet
+// strange cases:
+// 1. cfs process may be in different cpu/memory/etc cgroups
+// 2. the cgroup that includes cfs may have other processes
+// So it hopes that user could take care of it.
+const DefaultContainerName = "/cfs"
+
+var containerName string
+
 func init() {
 	initContainerManager()
+	containerName = DefaultContainerName
 }
+
+func SetContainerName(name string) { containerName = name }
 
 type CounterType struct {
 	disk string
