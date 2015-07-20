@@ -24,6 +24,15 @@ func main() {
 		log.Fatalf("server: configuration file[%s] is not valid (%v)", configfn, err)
 	}
 
+	// default is that cfs is bootstrapped using docker
+	cname, err := detectDockerContainer()
+	if err != nil {
+		log.Printf("server: failed to detect docker container (%v)", err)
+	} else {
+		stats.SetContainerName(cname)
+		log.Printf("server: detect docker container %q", cname)
+	}
+
 	log.Infof("server: starting server...")
 
 	lis, err := net.Listen("tcp", net.JoinHostPort(conf.Bind, conf.Port))
