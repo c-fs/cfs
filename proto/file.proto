@@ -12,6 +12,10 @@ service cfs {
 }
 
 
+message requestHeader {
+   int64 clientID = 1;
+}
+
 // PathError records an error and the operation and file path that caused it.
 message PathError {
     string op = 1;
@@ -45,11 +49,12 @@ message FileInfo {
 // of bytes written and an error, if any.
 // Write returns an error when n != len(b).
 message WriteRequest {
-    string name = 1;
-    int64 offset = 2;
-    bytes data = 3;
-    
-    bool append = 4;
+    requestHeader header = 1;
+    string name = 2;
+    int64 offset = 3;
+    bytes data = 4;
+
+    bool append = 5;
 }
 
 message WriteReply {
@@ -59,10 +64,11 @@ message WriteReply {
 
 // Read reads up to length bytes. The checksum of the data must match the exp_checksum if given, or an error is returned.
 message ReadRequest {
-    string name = 1;
-    int64 offset = 2;
-    int64 length = 3;
-    fixed32 exp_checksum = 4;
+    requestHeader header = 1;
+    string name = 2;
+    int64 offset = 3;
+    int64 length = 4;
+    fixed32 exp_checksum = 5;
 }
 
 message ReadReply {
@@ -73,8 +79,9 @@ message ReadReply {
 }
 
 message RenameRequest {
-    string oldname = 1;
-    string newname = 2;
+    requestHeader header = 1;
+    string oldname = 2;
+    string newname = 3;
 }
 
 message RenameReply {
@@ -82,7 +89,8 @@ message RenameReply {
 }
 
 message ReadDirRequest {
-    string name = 1;
+    requestHeader header = 1;
+    string name = 2;
 }
 
 message ReadDirReply {
@@ -92,10 +100,11 @@ message ReadDirReply {
 
 // Remove removes the named file or directory. If there is an error, it will be of type *PathError.
 message RemoveRequest {
-    string name = 1;
+    requestHeader header = 1;
+    string name = 2;
     // All removes path and any children it contains. It removes everything it can but returns the first error it 
     // encounters. If the path does not exist, RemoveAll returns nil (no error).
-    bool all = 2;
+    bool all = 3;
 }
 
 message RemoveReply {
@@ -105,8 +114,9 @@ message RemoveReply {
 // Mkdir creates a new directory with the specified name. If all is set, Mkdir creates a directory named path,
 // along with any necessary parents. If path is already a directory, Mkdir does nothing.
 message MkdirRequest {
-    string name = 1;
-    bool all = 2;
+    requestHeader header = 1;
+    string name = 2;
+    bool all = 3;
 }
 
 message MkdirReply {
@@ -114,13 +124,15 @@ message MkdirReply {
 }
 
 message ReconstructSrc {
-    string remote = 1;          // remote server (10.10.0.1:15524)
-    string name = 2;
+    requestHeader header = 1;
+    string remote = 2;          // remote server (10.10.0.1:15524)
+    string name = 3;
 }
 
 message ReconstructDst {
+    requestHeader header = 1;
     // The destination should always be local server.
-    string name = 1;
+    string name = 2;
 }
 
 // http://web.eecs.utk.edu/~plank/plank/papers/2013-02-11-FAST-Tutorial.pdf
@@ -128,8 +140,9 @@ message ReconstructDst {
 // Optimized for Cauchy Reed-Solomon (CRS) Codes, but should also be applied to 
 // RAID5 and RAID6
 message ReconstructRequest {
-    repeated ReconstructSrc srcs = 1;
-    repeated ReconstructDst dsts = 2;
+    requestHeader header = 1;
+    repeated ReconstructSrc srcs = 2;
+    repeated ReconstructDst dsts = 3;
 
     // each src has multiple strips. the length of src must be
     // a multiply of stripe_size or it should be zero filled.
@@ -139,16 +152,16 @@ message ReconstructRequest {
     // w MUST be in the range [1, 32]
     //
     // https://www.usenix.org/legacy/events/fast09/tech/full_papers/plank/plank_html Section 2.2
-    int32 strip_size = 3;
-    int32 packet_size = 4;
-    int32 w = 5;
+    int32 strip_size = 4;
+    int32 packet_size = 5;
+    int32 w = 6;
 
     // wk * wn matrix of bits
     // k is the number of sources, n is the number of dests.
     // bit_matrix[i][j] = i * k * w + j
     // TODO: make this a dense bytes array and each bytes contains
     // 8 bits.
-    repeated int32 bit_matrix = 6;
+    repeated int32 bit_matrix = 7;
 }
 
 message ReconstructReply {

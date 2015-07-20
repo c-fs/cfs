@@ -9,12 +9,14 @@ import (
 )
 
 type Client struct {
+	header      *pb.RequestHeader
 	grpcConn    *grpc.ClientConn
 	fileClient  pb.CfsClient
 	statsClient pb.StatsClient
 }
 
-func New(address string) (*Client, error) {
+func New(clientID int64, address string) (*Client, error) {
+	header := &pb.RequestHeader{ClientID: clientID}
 	conn, err := grpc.Dial(address)
 	if err != nil {
 		return nil, err
@@ -22,13 +24,13 @@ func New(address string) (*Client, error) {
 	fc := pb.NewCfsClient(conn)
 	sc := pb.NewStatsClient(conn)
 
-	return &Client{grpcConn: conn, fileClient: fc, statsClient: sc}, nil
+	return &Client{header: header, grpcConn: conn, fileClient: fc, statsClient: sc}, nil
 }
 
 func (c *Client) Write(ctx context.Context, name string, offset int64, data []byte, isAppend bool) (int64, error) {
 	reply, err := c.fileClient.Write(
 		ctx,
-		&pb.WriteRequest{Name: name, Offset: offset, Data: data, Append: isAppend},
+		&pb.WriteRequest{Header: c.header, Name: name, Offset: offset, Data: data, Append: isAppend},
 	)
 
 	if err != nil {
@@ -42,7 +44,7 @@ func (c *Client) Read(ctx context.Context, name string, offset, length int64, ch
 	reply, err := c.fileClient.Read(
 		ctx,
 		&pb.ReadRequest{
-			Name: name, Offset: offset, Length: length, ExpChecksum: checksum,
+			Header: c.header, Name: name, Offset: offset, Length: length, ExpChecksum: checksum,
 		},
 	)
 
@@ -55,7 +57,7 @@ func (c *Client) Read(ctx context.Context, name string, offset, length int64, ch
 func (c *Client) Rename(ctx context.Context, oldName, newName string) error {
 	reply, err := c.fileClient.Rename(
 		ctx,
-		&pb.RenameRequest{Oldname: oldName, Newname: newName},
+		&pb.RenameRequest{Header: c.header, Oldname: oldName, Newname: newName},
 	)
 
 	if err != nil {
@@ -65,7 +67,7 @@ func (c *Client) Rename(ctx context.Context, oldName, newName string) error {
 }
 
 func (c *Client) Remove(ctx context.Context, name string, all bool) error {
-	reply, err := c.fileClient.Remove(ctx, &pb.RemoveRequest{Name: name, All: all})
+	reply, err := c.fileClient.Remove(ctx, &pb.RemoveRequest{Header: c.header, Name: name, All: all})
 
 	if err != nil {
 		return err
@@ -74,7 +76,7 @@ func (c *Client) Remove(ctx context.Context, name string, all bool) error {
 }
 
 func (c *Client) ReadDir(ctx context.Context, name string) ([]*pb.FileInfo, error) {
-	reply, err := c.fileClient.ReadDir(ctx, &pb.ReadDirRequest{Name: name})
+	reply, err := c.fileClient.ReadDir(ctx, &pb.ReadDirRequest{Header: c.header, Name: name})
 
 	if err != nil {
 		return nil, err
@@ -83,7 +85,7 @@ func (c *Client) ReadDir(ctx context.Context, name string) ([]*pb.FileInfo, erro
 }
 
 func (c *Client) Mkdir(ctx context.Context, name string, all bool) error {
-	reply, err := c.fileClient.Mkdir(ctx, &pb.MkdirRequest{Name: name, All: all})
+	reply, err := c.fileClient.Mkdir(ctx, &pb.MkdirRequest{Header: c.header, Name: name, All: all})
 
 	if err != nil {
 		return err
