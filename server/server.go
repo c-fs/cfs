@@ -1,6 +1,8 @@
 package main
 
 import (
+	"io"
+
 	"github.com/c-fs/cfs/disk"
 	pb "github.com/c-fs/cfs/proto"
 	"github.com/c-fs/cfs/stats"
@@ -60,6 +62,10 @@ func (s *server) Read(ctx context.Context, req *pb.ReadRequest) (*pb.ReadReply, 
 	data := make([]byte, req.Length)
 	n, err := d.ReadAt(fn, data, req.Offset)
 	// TODO: add error
+	if err == io.EOF {
+		log.Infof("server: read %d bytes until EOF", n)
+		return &pb.ReadReply{BytesRead: int64(n), Data: data[:n]}, nil
+	}
 	if err != nil {
 		log.Infof("server: read error (%v)", err)
 		return &pb.ReadReply{}, nil
