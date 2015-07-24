@@ -73,13 +73,15 @@ sudo docker run \
   --volume=/sys:/sys:ro \
   --volume=/var/lib/docker/:/var/lib/docker:ro \
   --volume=/tmp:/tmp:rw \
+  --volume=${PWD}/cfs0000:/cfs0000
+  --volume=${PWD}/cfs0001:/cfs0001
   --publish=15524:15524 \
   --detach=true \
   --name=cfs \
   c-fs/cfs
 ```
 
-cfs is now running in the background on `http://localhost:15524`. For development, you can replace `--detach=true` with `-ti` to let it run as an interactive process.
+cfs is now running in the background on `http://localhost:15524`, and it uses ./cfs0000/ and ./cfs0001/ as data volume. For development, you can replace `--detach=true` with `-ti` to let it run as an interactive process.
 
 #### Write and Read file
 
