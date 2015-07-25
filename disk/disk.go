@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"fmt"
 //	"github.com/qiniu/log"
 )
 
@@ -36,6 +35,11 @@ func (brs *BlockReaderStream) NextBlock() (*Block, error) {
 	return brs.block, err
 }
 
+func NewBlockReaderStream(index, offset int, bm *BlockManager) *BlockReaderStream {
+	return &BlockReaderStream{index, offset, bm, bm.newBlock()}
+
+}
+
 func (d *Disk) NewBlockManager(f io.ReadWriteSeeker) *BlockManager {
 	return newBlockManager(d.payloadSize, f)
 }
@@ -62,12 +66,11 @@ func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 
 	index, offset := bm.getBlockIndexAndOffset(dataOffset)
 
-	stream := BlockReaderStream{index, offset, bm, bm.newBlock()}
+	stream := NewBlockReaderStream(index, offset, bm)
 
 	read := 0
 	for {
 		block, err := stream.NextBlock()
-		fmt.Println(block.size)
 
 		copied := copy(p, block.GetPayload())
 		// We just copied some data into p, shrink p
@@ -97,8 +100,7 @@ func (bws *BlockWriterStream) NextBlock(index int) (*Block, error) {
 
 	// full block
 	if bws.blockOffset == 0 && len(bws.data) >= bws.payloadSize {
-		bws.block.buf = bws.data[:bws.payloadSize]
-		bws.block.size = bws.payloadSize
+		bws.block.Copy(0, bws.data[:bws.payloadSize])
 		bws.data = bws.data[bws.payloadSize:]
 		bws.written += bws.payloadSize
 		return bws.block, nil
@@ -115,17 +117,15 @@ func (bws *BlockWriterStream) NextBlock(index int) (*Block, error) {
 	}
 
 	// copy data into it
-	bws.block.Seek(bws.blockOffset)
-	if len(bws.data) > bws.payloadSize - bws.blockOffset {
-		bws.written += bws.block.Copy(bws.data[:bws.payloadSize - bws.blockOffset])
-		bws.data = bws.data[bws.payloadSize - bws.blockOffset:]
+	payloadLen := bws.payloadSize - bws.blockOffset
+	if len(bws.data) > payloadLen {
+		bws.written += bws.block.Copy(bws.blockOffset,
+			bws.data[:payloadLen])
+		bws.data = bws.data[payloadLen:]
 	} else {
-		bws.written += bws.block.Copy(bws.data)
+		bws.written += bws.block.Copy(bws.blockOffset, bws.data)
 		bws.data = nil
 	}
-
-	bws.block.Seek(0)
-
 	bws.blockOffset = 0
 	return bws.block, nil
 }

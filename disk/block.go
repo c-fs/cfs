@@ -32,9 +32,9 @@ func (b *Block) Seek(offset int) {
 	b.offset = offset
 }
 
-func (b *Block) Copy(from []byte) int {
-	copied := copy(b.buf[b.offset:], from)
-	b.size = max(b.size, b.offset+copied)
+func (b *Block) Copy(offset int, from []byte) int {
+	copied := copy(b.buf[offset:], from)
+	b.size = max(b.size, offset+copied)
 	return copied
 }
 
@@ -45,6 +45,10 @@ func (b *Block) GetCRC() uint32 {
 func (b *Block) Reset() {
 	b.size = 0
 	b.offset = 0
+}
+
+func (b *Block) GetSize() int {
+	return b.size
 }
 
 type BlockManager struct{

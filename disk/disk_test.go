@@ -32,7 +32,7 @@ func setUpDiskTestFile(fileName string, d *Disk, length int, t *testing.T) *os.F
 			fillLen = length
 		}
 		block := newBlock(fillLen)
-		block.Copy(b[:fillLen])
+		block.Copy(0, b[:fillLen])
 		if err := bm.writeBlock(block, index); err != nil {
 			t.Fatalf("write tmp test file got error: %v", err)
 		}
@@ -92,10 +92,10 @@ func TestReadWriteDisk(t *testing.T) {
 	diskName := "test"
 	diskRoot := "wr"
 	diskMkdir := true
-	// diskRemoveAll := true
+	diskRemoveAll := true
 	for i, tt := range tests {
 		d := newTestDisk(diskName, diskRoot, diskMkdir, tt.blockSize - crc32Len)
-		// defer d.Remove("", diskRemoveAll)
+		defer d.Remove("", diskRemoveAll)
 		f := setUpDiskTestFile(path.Join(d.Root, tmpTestFile), d, tt.dataSize, t)
 		fmt.Println(path.Join(d.Root, tmpTestFile))
 		originalDSize := d.getDataLength(f)
