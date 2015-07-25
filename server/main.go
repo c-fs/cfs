@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/BurntSushi/toml"
+	"github.com/c-fs/cfs/enforce"
 	pb "github.com/c-fs/cfs/proto"
 	"github.com/c-fs/cfs/server/config"
 	"github.com/c-fs/cfs/stats"
@@ -50,6 +51,9 @@ func main() {
 			log.Fatalf("server: failed to add disk (%v)", err)
 		}
 	}
+
+	// 0x1234 is the client ID for cfsctl, and its quota is 10 req/sec.
+	enforce.SetQuota(0x1234, 10)
 
 	s := grpc.NewServer()
 	pb.RegisterCfsServer(s, cfs)

@@ -4,6 +4,7 @@ import (
 	"io"
 
 	"github.com/c-fs/cfs/disk"
+	"github.com/c-fs/cfs/enforce"
 	pb "github.com/c-fs/cfs/proto"
 	"github.com/c-fs/cfs/stats"
 	"github.com/qiniu/log"
@@ -21,6 +22,10 @@ func NewServer() *server {
 }
 
 func (s *server) Write(ctx context.Context, req *pb.WriteRequest) (*pb.WriteReply, error) {
+	if !enforce.HasQuota(req.Header.ClientID) {
+		log.Infof("server: out of quota for client %d", req.Header.ClientID)
+		return &pb.WriteReply{}, nil
+	}
 	dn, fn, err := splitDiskAndFile(req.Name)
 	if err != nil {
 		log.Infof("server: write error (%v)", err)
@@ -45,6 +50,10 @@ func (s *server) Write(ctx context.Context, req *pb.WriteRequest) (*pb.WriteRepl
 }
 
 func (s *server) Read(ctx context.Context, req *pb.ReadRequest) (*pb.ReadReply, error) {
+	if !enforce.HasQuota(req.Header.ClientID) {
+		log.Infof("server: out of quota for client %d", req.Header.ClientID)
+		return &pb.ReadReply{}, nil
+	}
 	dn, fn, err := splitDiskAndFile(req.Name)
 	if err != nil {
 		log.Infof("server: read error (%v)", err)
@@ -75,6 +84,10 @@ func (s *server) Read(ctx context.Context, req *pb.ReadRequest) (*pb.ReadReply, 
 }
 
 func (s *server) Rename(ctx context.Context, req *pb.RenameRequest) (*pb.RenameReply, error) {
+	if !enforce.HasQuota(req.Header.ClientID) {
+		log.Infof("server: out of quota for client %d", req.Header.ClientID)
+		return &pb.RenameReply{}, nil
+	}
 	dn0, ofn, err := splitDiskAndFile(req.Oldname)
 	if err != nil {
 		log.Infof("server: rename error (%v)", err)
@@ -107,6 +120,10 @@ func (s *server) Rename(ctx context.Context, req *pb.RenameRequest) (*pb.RenameR
 }
 
 func (s *server) Remove(ctx context.Context, req *pb.RemoveRequest) (*pb.RemoveReply, error) {
+	if !enforce.HasQuota(req.Header.ClientID) {
+		log.Infof("server: out of quota for client %d", req.Header.ClientID)
+		return &pb.RemoveReply{}, nil
+	}
 	dn, fn, err := splitDiskAndFile(req.Name)
 	if err != nil {
 		log.Infof("server: remove error (%v)", err)
@@ -131,6 +148,10 @@ func (s *server) Remove(ctx context.Context, req *pb.RemoveRequest) (*pb.RemoveR
 
 func (s *server) ReadDir(ctx context.Context, req *pb.ReadDirRequest) (*pb.ReadDirReply, error) {
 	reply := &pb.ReadDirReply{}
+	if !enforce.HasQuota(req.Header.ClientID) {
+		log.Infof("server: out of quota for client %d", req.Header.ClientID)
+		return reply, nil
+	}
 	dn, fn, err := splitDiskAndFile(req.Name)
 	if err != nil {
 		log.Infof("server: readDir error (%v)", err)
@@ -164,6 +185,10 @@ func (s *server) ReadDir(ctx context.Context, req *pb.ReadDirRequest) (*pb.ReadD
 
 func (s *server) Mkdir(ctx context.Context, req *pb.MkdirRequest) (*pb.MkdirReply, error) {
 	reply := &pb.MkdirReply{}
+	if !enforce.HasQuota(req.Header.ClientID) {
+		log.Infof("server: out of quota for client %d", req.Header.ClientID)
+		return reply, nil
+	}
 
 	dn, fn, err := splitDiskAndFile(req.Name)
 	if err != nil {
