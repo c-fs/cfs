@@ -51,13 +51,13 @@ func TestPartlyReadBlock(t *testing.T) {
 	bm := newBlockManager(20, f)
 
 	// writeBlock to set a correct CRC
-	b := &Block{make([]byte, 6), 0, 6, true}
+	b := newBlock(6)
 	err := bm.writeBlock(b, 4)
 	if err != nil {
 		t.Errorf("error = %v", err)
 	}
 	// try to read out a block
-	rb := &Block{make([]byte, 16), 0, 16, true}
+	rb := newBlock(16)
 	err = bm.readBlock(rb, 4)
 
 	// FIXME do we expect error = io.EOF here?
@@ -89,7 +89,8 @@ func TestCRCErrCheck(t *testing.T) {
 		bm := newBlockManager(tt.bs, f)
 
 		// writeBlock to set a correct CRC
-		b := &Block{make([]byte, 6), 0, 6, true}
+
+		b := newBlock(6)
 		err := bm.readBlock(b, tt.index)
 		if err != ErrBadCRC {
 			t.Errorf("%d: expect error %v got %v", i, ErrBadCRC, err)

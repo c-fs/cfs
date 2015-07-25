@@ -22,7 +22,6 @@ type Block struct{
 	buf []byte
 	offset int
 	size int
-	isLast bool
 }
 
 func (b *Block) GetPayload() []byte {
@@ -59,7 +58,7 @@ func newBlockManager(payloadSize int, rws io.ReadWriteSeeker) *BlockManager {
 }
 
 func newBlock(size int) *Block {
-	return &Block{make([]byte, size), 0, size, false}
+	return &Block{make([]byte, size), 0, size}
 }
 
 // newBlock creates an empty block
@@ -116,8 +115,6 @@ func (bm *BlockManager) writeBlock(b *Block, index int) error {
 		return err
 	}
 
-	// write crc32c
-	// TODO: reuse buffer
 	crcBuf := make([]byte, crc32Len)
 	binary.BigEndian.PutUint32(crcBuf, b.GetCRC())
 	_, err := bm.rws.Write(crcBuf)
