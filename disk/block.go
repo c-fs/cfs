@@ -11,6 +11,9 @@ import (
 var (
 	crc32cTable = crc32.MakeTable(crc32.Castagnoli)
 	crc32Len    = 4
+	blockSize   = 4096
+	payloadSize = blockSize - crc32Len
+
 	// ErrPayloadSizeTooLarge indicates the input payload size is too big
 	ErrPayloadSizeTooLarge = errors.New("disk: bad payload size")
 	// ErrBadCRC indicates there is not CRC can be found in the block
@@ -39,7 +42,17 @@ func (b *Block) Copy(offset int, from []byte) int {
 }
 
 func (b *Block) GetCRC() uint32 {
-	return crc32.Checksum(b.GetPayload(), crc32cTable)
+	return crc32.Checksum(b.buf[:b.size], crc32cTable)
+}
+
+func (b *Block) IsPartial() bool {
+	return !(b.offset == 0 && b.size == payloadSize)
+}
+
+func (b *Block) Merge(toMerge *Block) {
+	b.offset = min(b.offset, toMerge.offset)
+	b.size = min(b.size, toMerge.size)
+	copy(b.buf[toMerge.offset:toMerge.size], toMerge.GetPayload())
 }
 
 func (b *Block) Reset() {
@@ -47,51 +60,32 @@ func (b *Block) Reset() {
 	b.offset = 0
 }
 
-func (b *Block) GetSize() int {
-	return b.size
+func newBlock() *Block {
+	return &Block{make([]byte, payloadSize), 0, payloadSize}
 }
 
-type BlockManager struct{
-	payloadSize int
-	blockSize int
-	rws io.ReadWriteSeeker
-}
-
-func newBlockManager(payloadSize int, rws io.ReadWriteSeeker) *BlockManager {
-	return &BlockManager{payloadSize, payloadSize + crc32Len, rws}
-}
-
-func newBlock(size int) *Block {
-	return &Block{make([]byte, size), 0, size}
-}
-
-// newBlock creates an empty block
-func (bm *BlockManager) newBlock() *Block {
-	return newBlock(bm.payloadSize)
-}
-
-func (bm *BlockManager) seekToIndex(index int) error {
-	_, err := bm.rws.Seek(int64(index * bm.blockSize), os.SEEK_SET)
+func seekToIndex(s io.Seeker, index int) error {
+	_, err := s.Seek(int64(index * blockSize), os.SEEK_SET)
 	return err
 }
 
-func (bm *BlockManager) seekToOffset(offset int) error {
-	_, err := bm.rws.Seek(int64(offset), os.SEEK_CUR)
+func seekToOffset(s io.Seeker, offset int) error {
+	_, err := s.Seek(int64(offset), os.SEEK_CUR)
 	return err
 }
 
-func (bm *BlockManager) getBlockIndexAndOffset(dataOffset int) (int, int) {
-	index := dataOffset / bm.payloadSize
-	offset := dataOffset - index*bm.payloadSize
+func blockIndexAndOffset(dataOffset int) (int, int) {
+	index := dataOffset / payloadSize
+	offset := dataOffset - index*payloadSize
 	return index, offset
 }
 
-func (bm *BlockManager) readBlock(b *Block, index int) error {
+func readBlock(f io.ReadSeeker, b *Block, index int) error {
 	crcBuf := make([]byte, crc32Len)
-	if err := bm.seekToIndex(index); err != nil {
+	if err := seekToIndex(f, index); err != nil {
 		return err
 	}
-	n, err := bm.rws.Read(crcBuf)
+	n, err := f.Read(crcBuf)
 	// Cannot read full crc
 	if n > 0 && n < 4 {
 		return ErrBadCRC
@@ -100,7 +94,7 @@ func (bm *BlockManager) readBlock(b *Block, index int) error {
 		return err
 	}
 	crc := binary.BigEndian.Uint32(crcBuf)
-	b.size, err = bm.rws.Read(b.buf)
+	b.size, err = f.Read(b.buf)
 	if err != nil {
 		return err
 	}
@@ -111,24 +105,24 @@ func (bm *BlockManager) readBlock(b *Block, index int) error {
 	return nil
 }
 
-func (bm *BlockManager) writeBlock(b *Block, index int) error {
-	if b.size > bm.payloadSize {
+func writeBlock(f io.WriteSeeker, b *Block, index int) error {
+	if b.size > payloadSize {
 		return ErrPayloadSizeTooLarge
 	}
-	if err := bm.seekToIndex(index); err != nil {
+	if err := seekToIndex(f, index); err != nil {
 		return err
 	}
 
 	crcBuf := make([]byte, crc32Len)
 	binary.BigEndian.PutUint32(crcBuf, b.GetCRC())
-	_, err := bm.rws.Write(crcBuf)
+	_, err := f.Write(crcBuf)
 	if err != nil {
 		return err
 	}
-	if err := bm.seekToOffset(b.offset); err != nil {
+	if err := seekToOffset(f, b.offset); err != nil {
 		return err
 	}
-	_, err = bm.rws.Write(b.GetPayload())
+	_, err = f.Write(b.GetPayload())
 	if err != nil {
 		return err
 	}

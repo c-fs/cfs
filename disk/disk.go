@@ -15,33 +15,21 @@ type Disk struct {
 	// Usually it is the mount point of a disk or a directory
 	// under the mount point.
 	Root string
-	// PayloadSize
-	payloadSize int
 }
 
 type BlockReaderStream struct {
 	blockIndex int
 	blockOffset int
-	blockManager *BlockManager
-	block *Block
+	file io.ReadSeeker
 }
 
 func (brs *BlockReaderStream) NextBlock() (*Block, error) {
-	brs.block.Reset()
-	err := brs.blockManager.readBlock(brs.block, brs.blockIndex)
-	brs.block.Seek(brs.blockOffset)
+	block := newBlock()
+	err := readBlock(brs.file, block, brs.blockIndex)
+	block.Seek(brs.blockOffset)
 	brs.blockOffset = 0
 	brs.blockIndex += 1
-	return brs.block, err
-}
-
-func NewBlockReaderStream(index, offset int, bm *BlockManager) *BlockReaderStream {
-	return &BlockReaderStream{index, offset, bm, bm.newBlock()}
-
-}
-
-func (d *Disk) NewBlockManager(f io.ReadWriteSeeker) *BlockManager {
-	return newBlockManager(d.payloadSize, f)
+	return block, err
 }
 
 // ReadAt reads up to len(p) bytes starting at byte offset off
@@ -50,7 +38,6 @@ func (d *Disk) NewBlockManager(f io.ReadWriteSeeker) *BlockManager {
 func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 	dataOffset := int(off)
 	name = path.Join(d.Root, name)
-
 	// nil or zero length payload
 	if len(p) == 0 {
 		return 0, nil
@@ -62,23 +49,18 @@ func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 	}
 	defer f.Close()
 
-	bm := d.NewBlockManager(f)
-
-	index, offset := bm.getBlockIndexAndOffset(dataOffset)
-
-	stream := NewBlockReaderStream(index, offset, bm)
-
+	index, offset := blockIndexAndOffset(dataOffset)
+	stream := &BlockReaderStream{index, offset, f}
 	read := 0
 	for {
 		block, err := stream.NextBlock()
-
 		copied := copy(p, block.GetPayload())
 		// We just copied some data into p, shrink p
 		p = p[copied:]
 		// We want to exit the loop for the following cases:
 		// 1. There is an error reading block
 		// 2. We can't copy a full block into p
-		if err != nil || block.size < d.payloadSize || len(p) == 0 {
+		if err != nil || block.size < payloadSize || len(p) == 0 {
 			return read + copied, err
 		}
 		read += copied
@@ -88,46 +70,31 @@ func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 type BlockWriterStream struct {
 	blockOffset int
 	data []byte
-	block *Block
-	blockManager *BlockManager
-	payloadSize int
-	written int
+	file io.ReadWriteSeeker
 }
 
 // NextBlock gets the next block from the input stream
-func (bws *BlockWriterStream) NextBlock(index int) (*Block, error) {
-	bws.block.Reset()
+func (bws *BlockWriterStream) NextBlock() (*Block, error) {
+	block := newBlock()
 
 	// full block
-	if bws.blockOffset == 0 && len(bws.data) >= bws.payloadSize {
-		bws.block.Copy(0, bws.data[:bws.payloadSize])
-		bws.data = bws.data[bws.payloadSize:]
-		bws.written += bws.payloadSize
-		return bws.block, nil
+	if bws.blockOffset == 0 && len(bws.data) >= payloadSize {
+		block.Copy(0, bws.data[:payloadSize])
+		bws.data = bws.data[payloadSize:]
+		return block, nil
 	}
-	// partial block, needs to merge with existing block
-
-	// read existing block
-	err := bws.blockManager.readBlock(bws.block, index)
-	if err == io.EOF {
-		err = nil
-	}
-	if err != nil {
-		return bws.block, err
-	}
-
-	// copy data into it
-	payloadLen := bws.payloadSize - bws.blockOffset
+	// partial block, copy data into it
+	payloadLen := payloadSize - bws.blockOffset
+	block.Seek(bws.blockOffset)
 	if len(bws.data) > payloadLen {
-		bws.written += bws.block.Copy(bws.blockOffset,
-			bws.data[:payloadLen])
+		block.Copy(bws.blockOffset, bws.data[:payloadLen])
 		bws.data = bws.data[payloadLen:]
 	} else {
-		bws.written += bws.block.Copy(bws.blockOffset, bws.data)
+		block.Copy(bws.blockOffset, bws.data)
 		bws.data = nil
 	}
 	bws.blockOffset = 0
-	return bws.block, nil
+	return block, nil
 }
 
 func (d *Disk) getDataLength(f *os.File) int {
@@ -136,8 +103,7 @@ func (d *Disk) getDataLength(f *os.File) int {
 		return 0
 	}
 	s := int(fi.Size())
-	bm := d.NewBlockManager(f)
-	blockNum := (s + bm.blockSize - 1) / bm.blockSize
+	blockNum := (s + blockSize - 1) / blockSize
 	return s - blockNum*crc32Len
 }
 
@@ -157,50 +123,48 @@ func (d *Disk) WriteAt(name string, p []byte, off int64) (int, error) {
 		return 0, err
 	}
 	defer f.Close()
-
 	fileDataLength := d.getDataLength(f)
-	bm := d.NewBlockManager(f)
-
-	index, offset := bm.getBlockIndexAndOffset(dataOffset)
-	fileDataIndex, _ := bm.getBlockIndexAndOffset(fileDataLength)
+	index, offset := blockIndexAndOffset(dataOffset)
+	fileDataIndex, _ := blockIndexAndOffset(fileDataLength)
 	currentIndex := fileDataIndex
 	// fill with 0 padding
 	for currentIndex < index {
-		block := bm.newBlock()
+		block := newBlock()
 		if currentIndex == fileDataIndex {
-			err := bm.readBlock(block, currentIndex)
-			if err == io.EOF {
-				err = nil
-			}
-			if err != nil {
+			err := readBlock(f, block, currentIndex)
+			if err != nil && err == io.EOF {
 				return 0, err
 			}
-			block.size = d.payloadSize
+			block.size = payloadSize
 		}
-		bm.writeBlock(block, currentIndex)
+		writeBlock(f, block, currentIndex)
 		currentIndex += 1
 	}
 
-	stream := BlockWriterStream{offset, p, bm.newBlock(), bm,
-		bm.payloadSize, 0}
-
+	stream := BlockWriterStream{offset, p, f}
+	written := 0
 	for {
-		block, err := stream.NextBlock(index)
-
+		block, err := stream.NextBlock()
+		if block.IsPartial() {
+			// Merge with existing
+			base := newBlock()
+			err := readBlock(f, base, index)
+			if err != nil && err != io.EOF {
+				return written, err
+			}
+			base.Merge(block)
+			block = base
+		}
+		if err != nil  || block.size == 0 {
+			return written, err
+		}
+		err = writeBlock(f, block, index)
 		if err != nil {
-			return stream.written, err
+			return written, err
 		}
-		if block.size == 0 {
-			break
-		}
-
-		err = bm.writeBlock(block, index)
-		if err != nil {
-			return stream.written, err
-		}
+		written += len(block.GetPayload())
 		index++;
 	}
-	return stream.written, nil
 }
 
 func (d *Disk) Rename(oldname, newname string) error {
