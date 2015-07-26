@@ -55,6 +55,7 @@ func (c CounterType) Add() {
 		prefix = c.disk + "_"
 	}
 	metrics.Counter(prefix + c.name).Add()
+	metrics.Counter(strconv.FormatInt(c.client, 16) + "_ops").Add()
 }
 
 func Server() pb.StatsServer { return &server{} }
