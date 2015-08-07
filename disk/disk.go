@@ -26,7 +26,7 @@ type BlockReaderStream struct {
 func (brs *BlockReaderStream) NextBlock() (*Block, error) {
 	block := newBlock()
 	err := readBlock(brs.file, block, brs.blockIndex)
-	block.Seek(brs.blockOffset)
+	block.left = brs.blockOffset
 	brs.blockOffset = 0
 	brs.blockIndex += 1
 	return block, err
@@ -57,13 +57,16 @@ func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 		copied := copy(p, block.GetPayload())
 		// We just copied some data into p, shrink p
 		p = p[copied:]
-		// We want to exit the loop for the following cases:
-		// 1. There is an error reading block
-		// 2. We can't copy a full block into p
-		if err != nil || block.size < payloadSize || len(p) == 0 {
-			return read + copied, err
-		}
 		read += copied
+		if err != nil {
+			return read, err
+		}
+		if len(p) == 0 {
+			return read, nil
+		}
+		if block.right < payloadSize  {
+			return read, io.EOF
+		}
 	}
 }
 
@@ -76,16 +79,17 @@ type BlockWriterStream struct {
 // NextBlock gets the next block from the input stream
 func (bws *BlockWriterStream) NextBlock() (*Block, error) {
 	block := newBlock()
-
-	// full block
+	block.right = 0
+	// if this is a full block, return it
 	if bws.blockOffset == 0 && len(bws.data) >= payloadSize {
-		block.Copy(0, bws.data[:payloadSize])
+		block.buf = bws.data[:payloadSize]
+		block.right = payloadSize
 		bws.data = bws.data[payloadSize:]
 		return block, nil
 	}
-	// partial block, copy data into it
+	// if this is a partial block, copy data into it
 	payloadLen := payloadSize - bws.blockOffset
-	block.Seek(bws.blockOffset)
+	block.left = bws.blockOffset
 	if len(bws.data) > payloadLen {
 		block.Copy(bws.blockOffset, bws.data[:payloadLen])
 		bws.data = bws.data[payloadLen:]
@@ -132,10 +136,10 @@ func (d *Disk) WriteAt(name string, p []byte, off int64) (int, error) {
 		block := newBlock()
 		if currentIndex == fileDataIndex {
 			err := readBlock(f, block, currentIndex)
-			if err != nil && err == io.EOF {
+			if err != nil && err != io.EOF {
 				return 0, err
 			}
-			block.size = payloadSize
+			block.right = payloadSize
 		}
 		writeBlock(f, block, currentIndex)
 		currentIndex += 1
@@ -145,6 +149,10 @@ func (d *Disk) WriteAt(name string, p []byte, off int64) (int, error) {
 	written := 0
 	for {
 		block, err := stream.NextBlock()
+		if block.IsEmpty() {
+			return written, err
+		}
+		toWrite := len(block.GetPayload())
 		if block.IsPartial() {
 			// Merge with existing
 			base := newBlock()
@@ -155,14 +163,12 @@ func (d *Disk) WriteAt(name string, p []byte, off int64) (int, error) {
 			base.Merge(block)
 			block = base
 		}
-		if err != nil  || block.size == 0 {
-			return written, err
-		}
 		err = writeBlock(f, block, index)
 		if err != nil {
 			return written, err
 		}
-		written += len(block.GetPayload())
+
+		written += toWrite
 		index++;
 	}
 }

@@ -20,44 +20,55 @@ var (
 	ErrBadCRC = errors.New("disk: not a valid CRC")
 )
 
-
+// Block is a buffer aligned with disk data block with two offset (left and right)
+// representing the start and end of the effective payload inside the buffer
 type Block struct{
 	buf []byte
-	offset int
-	size int
+	left int
+	right int
 }
 
+// IsEmpty tells if the buffer's effective payload is empty
+func (b *Block) IsEmpty() bool {
+	return b.left == b.right
+}
+
+// GetPayload returns the effective payload as a byte array
 func (b *Block) GetPayload() []byte {
-	return b.buf[b.offset:b.size]
+	return b.buf[b.left:b.right]
 }
 
-func (b *Block) Seek(offset int) {
-	b.offset = offset
-}
-
+// Copy copies a byte array to the offset of the buffer
+// It also updates
 func (b *Block) Copy(offset int, from []byte) int {
 	copied := copy(b.buf[offset:], from)
-	b.size = max(b.size, offset+copied)
+	b.left = min(b.left, offset)
+	b.right = max(b.right, offset+copied)
 	return copied
 }
 
+// GetCRC calculates the crc of the effective payload
 func (b *Block) GetCRC() uint32 {
-	return crc32.Checksum(b.buf[:b.size], crc32cTable)
+	return crc32.Checksum(b.buf[b.left:b.right], crc32cTable)
 }
 
+// IsPartial checks if effective payload is a partial payload
 func (b *Block) IsPartial() bool {
-	return !(b.offset == 0 && b.size == payloadSize)
+	return !(b.left == 0 && b.right == payloadSize)
 }
 
+// Merge uses current block as a base and
+// merges another block on top of it
 func (b *Block) Merge(toMerge *Block) {
-	b.offset = min(b.offset, toMerge.offset)
-	b.size = min(b.size, toMerge.size)
-	copy(b.buf[toMerge.offset:toMerge.size], toMerge.GetPayload())
+	b.left = min(b.left, toMerge.left)
+	b.right = max(b.right, toMerge.right)
+	copy(b.buf[toMerge.left:toMerge.right], toMerge.GetPayload())
 }
 
+// Reset resets the effective payload to 0
 func (b *Block) Reset() {
-	b.size = 0
-	b.offset = 0
+	b.left = 0
+	b.right = 0
 }
 
 func newBlock() *Block {
@@ -81,6 +92,7 @@ func blockIndexAndOffset(dataOffset int) (int, int) {
 }
 
 func readBlock(f io.ReadSeeker, b *Block, index int) error {
+	b.Reset()
 	crcBuf := make([]byte, crc32Len)
 	if err := seekToIndex(f, index); err != nil {
 		return err
@@ -94,7 +106,8 @@ func readBlock(f io.ReadSeeker, b *Block, index int) error {
 		return err
 	}
 	crc := binary.BigEndian.Uint32(crcBuf)
-	b.size, err = f.Read(b.buf)
+	v, err := f.Read(b.buf)
+	b.right = v
 	if err != nil {
 		return err
 	}
@@ -106,7 +119,7 @@ func readBlock(f io.ReadSeeker, b *Block, index int) error {
 }
 
 func writeBlock(f io.WriteSeeker, b *Block, index int) error {
-	if b.size > payloadSize {
+	if b.right > payloadSize {
 		return ErrPayloadSizeTooLarge
 	}
 	if err := seekToIndex(f, index); err != nil {
@@ -119,7 +132,7 @@ func writeBlock(f io.WriteSeeker, b *Block, index int) error {
 	if err != nil {
 		return err
 	}
-	if err := seekToOffset(f, b.offset); err != nil {
+	if err := seekToOffset(f, b.left); err != nil {
 		return err
 	}
 	_, err = f.Write(b.GetPayload())
