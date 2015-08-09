@@ -5,9 +5,9 @@ package stats
 import (
 	"time"
 
+	"github.com/google/cadvisor/cache/memory"
 	"github.com/google/cadvisor/info/v1"
 	"github.com/google/cadvisor/manager"
-	"github.com/google/cadvisor/storage/memory"
 	"github.com/google/cadvisor/utils/sysfs"
 	"github.com/qiniu/log"
 )
@@ -15,6 +15,9 @@ import (
 const (
 	statsToCacheNum = 60
 	storageDuration = 2 * time.Minute
+
+	maxHousekeepingInterval  = 60 * time.Second
+	allowDynamicHousekeeping = true
 )
 
 var cmgr manager.Manager
@@ -26,7 +29,7 @@ func initContainerManager() {
 		return
 	}
 	// TODO: support influxdb or other backend storage
-	cmgr, err = manager.New(memory.New(storageDuration, nil), sysFs)
+	cmgr, err = manager.New(memory.New(storageDuration, nil), sysFs, maxHousekeepingInterval, allowDynamicHousekeeping)
 	if err != nil {
 		log.Infof("stats: failed to create a container Manager (%v)", err)
 		return
