@@ -48,7 +48,7 @@ func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 		if len(p) == 0 {
 			return read, nil
 		}
-		if block.right < payloadSize  {
+		if block.right < payloadSize {
 			return read, io.EOF
 		}
 	}
@@ -122,7 +122,7 @@ func (d *Disk) WriteAt(name string, p []byte, off int64) (int, error) {
 		}
 
 		written += toWrite
-		index++;
+		index++
 	}
 }
 

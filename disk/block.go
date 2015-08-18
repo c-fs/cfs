@@ -22,9 +22,9 @@ var (
 
 // Block is a buffer aligned with disk data block with two offset (left and right)
 // representing the start and end of the effective payload inside the buffer
-type Block struct{
-	buf []byte
-	left int
+type Block struct {
+	buf   []byte
+	left  int
 	right int
 }
 
@@ -51,7 +51,6 @@ func (b *Block) Copy(offset int, from []byte) int {
 func (b *Block) StartFrom(offset int) {
 	b.left = offset
 }
-
 
 // EndAt sets the block's right offset
 func (b *Block) EndAt(offset int) {
@@ -87,7 +86,7 @@ func newBlock() *Block {
 }
 
 func seekToIndex(s io.Seeker, index int) error {
-	_, err := s.Seek(int64(index * blockSize), os.SEEK_SET)
+	_, err := s.Seek(int64(index*blockSize), os.SEEK_SET)
 	return err
 }
 
@@ -137,7 +136,7 @@ func writeBlock(f io.WriteSeeker, b *Block, index int) error {
 		return err
 	}
 
-	crcBuf := make([]byte, crc32Len + len(b.Payload()))
+	crcBuf := make([]byte, crc32Len+len(b.Payload()))
 	binary.BigEndian.PutUint32(crcBuf, b.CRC())
 	copy(crcBuf[crc32Len:], b.Payload())
 	_, err := f.Write(crcBuf)
@@ -146,7 +145,6 @@ func writeBlock(f io.WriteSeeker, b *Block, index int) error {
 	}
 	return nil
 }
-
 
 func min(a, b int) int {
 	if a > b {

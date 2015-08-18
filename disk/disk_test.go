@@ -2,8 +2,8 @@ package disk
 
 import (
 	"bytes"
-	"os"
 	"io"
+	"os"
 	"path"
 	"testing"
 )
@@ -51,9 +51,9 @@ func newTestDisk(name, root string, mkdir bool) *Disk {
 
 func TestReadWriteDisk(t *testing.T) {
 	tests := []struct {
-		offSet    int
-		fileSize  int
-		writeLen  int
+		offSet   int
+		fileSize int
+		writeLen int
 	}{
 		// zero write
 		{0, 0, 0},
@@ -138,12 +138,12 @@ func TestReadWriteDisk(t *testing.T) {
 
 func TestReadNonExistFile(t *testing.T) {
 	tests := []struct {
-		diskName  string
-		fileRoot  string
-		fileName  string
-		mkdir     bool
-		offSet    int64
-		readLen   int64
+		diskName string
+		fileRoot string
+		fileName string
+		mkdir    bool
+		offSet   int64
+		readLen  int64
 	}{
 		// read file on non-exist path
 		{"disk0", "nowhere_exist", "no", false, 0, 50},

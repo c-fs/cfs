@@ -5,9 +5,9 @@ import (
 )
 
 type BlockReaderStream struct {
-	blockIndex int
+	blockIndex  int
 	blockOffset int
-	file io.ReadSeeker
+	file        io.ReadSeeker
 }
 
 func (brs *BlockReaderStream) NextBlock() (*Block, error) {
@@ -19,11 +19,10 @@ func (brs *BlockReaderStream) NextBlock() (*Block, error) {
 	return block, err
 }
 
-
 type BlockWriterStream struct {
 	blockOffset int
-	data []byte
-	file io.ReadWriteSeeker
+	data        []byte
+	file        io.ReadWriteSeeker
 }
 
 // NextBlock gets the next block from the input stream

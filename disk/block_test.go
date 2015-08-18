@@ -84,7 +84,6 @@ func TestCRCErrCheck(t *testing.T) {
 		{2, 0},
 		// CRC error since it is appending to the last piece of the block
 		{blockSize * 10, 0},
-
 	}
 	defer os.Remove(tmpTestFile)
 	for i, tt := range tests {
@@ -110,11 +109,11 @@ func TestReadWriteBlock(t *testing.T) {
 		// none-zero index
 		{blockSize * 5, 2, payloadSize},
 		// write partly block
-		{blockSize * 5 - 10, 4, payloadSize},
+		{blockSize*5 - 10, 4, payloadSize},
 		// empty data
 		{0, 0, 0},
 		// empty data with just fit block size
-		{blockSize * 25,0, 0},
+		{blockSize * 25, 0, 0},
 	}
 
 	defer os.Remove(tmpTestFile)
