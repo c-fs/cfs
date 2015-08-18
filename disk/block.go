@@ -104,11 +104,11 @@ func blockIndexAndOffset(dataOffset int) (int, int) {
 
 func readBlock(f io.ReadSeeker, b *Block, index int) error {
 	b.Reset()
-	crcBuf := make([]byte, crc32Len)
 	if err := seekToIndex(f, index); err != nil {
 		return err
 	}
-	n, err := f.Read(crcBuf)
+	buf := make([]byte, blockSize)
+	n, err := f.Read(buf)
 	// Cannot read full crc
 	if n > 0 && n < 4 {
 		return ErrBadCRC
@@ -116,8 +116,8 @@ func readBlock(f io.ReadSeeker, b *Block, index int) error {
 	if err != nil {
 		return err
 	}
-	crc := binary.BigEndian.Uint32(crcBuf)
-	v, err := f.Read(b.buf)
+	crc := binary.BigEndian.Uint32(buf[:crc32Len])
+	v := copy(b.buf, buf[crc32Len:n])
 	b.EndAt(v)
 	if err != nil {
 		return err
@@ -133,20 +133,16 @@ func writeBlock(f io.WriteSeeker, b *Block, index int) error {
 	if b.right > payloadSize {
 		return ErrPayloadSizeTooLarge
 	}
+	if b.left != 0 {
+		panic("block is not left aligned")
+	}
 	if err := seekToIndex(f, index); err != nil {
 		return err
 	}
 
-	crcBuf := make([]byte, crc32Len + b.left + len(b.GetPayload()))
+	crcBuf := make([]byte, crc32Len + len(b.GetPayload()))
 	binary.BigEndian.PutUint32(crcBuf, b.GetCRC())
-	// _, err := f.Write(crcBuf)
-	// if err != nil {
-	// 	return err
-	// }
-	// if err := seekToOffset(f, b.left); err != nil {
-	// 	return err
-	// }
-	copy(crcBuf[b.left:], b.GetPayload())
+	copy(crcBuf[crc32Len:], b.GetPayload())
 	_, err := f.Write(crcBuf)
 	if err != nil {
 		return err

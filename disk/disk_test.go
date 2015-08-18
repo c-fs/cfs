@@ -3,7 +3,6 @@ package disk
 import (
 	"bytes"
 	"os"
-	// "fmt"
 	"io"
 	"path"
 	"testing"

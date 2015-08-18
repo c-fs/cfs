@@ -3,9 +3,6 @@ package disk
 import (
 	"bytes"
 	"encoding/binary"
-	// "errors"
-	// "hash/crc32"
-	// "strings"
 	"os"
 	"path"
 	"testing"
