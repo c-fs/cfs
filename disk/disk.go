@@ -38,7 +38,7 @@ func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 	read := 0
 	for {
 		block, err := stream.NextBlock()
-		copied := copy(p, block.GetPayload())
+		copied := copy(p, block.Payload())
 		// We just copied some data into p, shrink p
 		p = p[copied:]
 		read += copied
@@ -105,7 +105,7 @@ func (d *Disk) WriteAt(name string, p []byte, off int64) (int, error) {
 		if block.IsEmpty() {
 			return written, err
 		}
-		toWrite := len(block.GetPayload())
+		toWrite := len(block.Payload())
 		if block.IsPartial() {
 			// Merge with existing
 			base := newBlock()

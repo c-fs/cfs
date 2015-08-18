@@ -151,9 +151,9 @@ func TestReadWriteBlock(t *testing.T) {
 			t.Errorf("%d: error = %v", i, err)
 		}
 		crc := binary.BigEndian.Uint32(b)
-		if crc != block.GetCRC() {
+		if crc != block.CRC() {
 			t.Errorf("%d: expect crc %v got %v",
-				i, crc, block.GetCRC())
+				i, crc, block.CRC())
 		}
 	}
 }

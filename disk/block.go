@@ -33,8 +33,8 @@ func (b *Block) IsEmpty() bool {
 	return b.left == b.right
 }
 
-// GetPayload returns the effective payload as a byte array
-func (b *Block) GetPayload() []byte {
+// Payload returns the effective payload as a byte array
+func (b *Block) Payload() []byte {
 	return b.buf[b.left:b.right]
 }
 
@@ -58,8 +58,8 @@ func (b *Block) EndAt(offset int) {
 	b.right = offset
 }
 
-// GetCRC calculates the crc of the effective payload
-func (b *Block) GetCRC() uint32 {
+// CRC calculates the crc of the effective payload
+func (b *Block) CRC() uint32 {
 	return crc32.Checksum(b.buf[b.left:b.right], crc32cTable)
 }
 
@@ -73,7 +73,7 @@ func (b *Block) IsPartial() bool {
 func (b *Block) Merge(toMerge *Block) {
 	b.StartFrom(min(b.left, toMerge.left))
 	b.EndAt(max(b.right, toMerge.right))
-	copy(b.buf[toMerge.left:toMerge.right], toMerge.GetPayload())
+	copy(b.buf[toMerge.left:toMerge.right], toMerge.Payload())
 }
 
 // Reset resets the effective payload to 0
@@ -123,7 +123,7 @@ func readBlock(f io.ReadSeeker, b *Block, index int) error {
 		return err
 	}
 	// Invalid crc
-	if crc != b.GetCRC() {
+	if crc != b.CRC() {
 		return ErrBadCRC
 	}
 	return nil
@@ -140,9 +140,9 @@ func writeBlock(f io.WriteSeeker, b *Block, index int) error {
 		return err
 	}
 
-	crcBuf := make([]byte, crc32Len + len(b.GetPayload()))
-	binary.BigEndian.PutUint32(crcBuf, b.GetCRC())
-	copy(crcBuf[crc32Len:], b.GetPayload())
+	crcBuf := make([]byte, crc32Len + len(b.Payload()))
+	binary.BigEndian.PutUint32(crcBuf, b.CRC())
+	copy(crcBuf[crc32Len:], b.Payload())
 	_, err := f.Write(crcBuf)
 	if err != nil {
 		return err
