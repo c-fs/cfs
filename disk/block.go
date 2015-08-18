@@ -137,16 +137,17 @@ func writeBlock(f io.WriteSeeker, b *Block, index int) error {
 		return err
 	}
 
-	crcBuf := make([]byte, crc32Len)
+	crcBuf := make([]byte, crc32Len + b.left + len(b.GetPayload()))
 	binary.BigEndian.PutUint32(crcBuf, b.GetCRC())
+	// _, err := f.Write(crcBuf)
+	// if err != nil {
+	// 	return err
+	// }
+	// if err := seekToOffset(f, b.left); err != nil {
+	// 	return err
+	// }
+	copy(crcBuf[b.left:], b.GetPayload())
 	_, err := f.Write(crcBuf)
-	if err != nil {
-		return err
-	}
-	if err := seekToOffset(f, b.left); err != nil {
-		return err
-	}
-	_, err = f.Write(b.GetPayload())
 	if err != nil {
 		return err
 	}
