@@ -119,9 +119,6 @@ func readBlock(f io.ReadSeeker, b *Block, index int) error {
 	crc := binary.BigEndian.Uint32(buf[:crc32Len])
 	v := copy(b.buf, buf[crc32Len:n])
 	b.EndAt(v)
-	if err != nil {
-		return err
-	}
 	// Invalid crc
 	if crc != b.CRC() {
 		return ErrBadCRC
