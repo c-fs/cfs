@@ -97,7 +97,7 @@ func TestReadWriteDisk(t *testing.T) {
 		defer d.Remove("", diskRemoveAll)
 		f := setUpDiskTestFile(path.Join(d.Root, tmpTestFile),
 			tt.fileSize, t)
-		originalDSize := d.getDataLength(f)
+		originalDSize := d.getDataSize(f)
 		expectedDSize := max(originalDSize, tt.offSet+tt.writeLen)
 
 		// write
@@ -111,7 +111,7 @@ func TestReadWriteDisk(t *testing.T) {
 		}
 
 		// check data size after write
-		dSize := d.getDataLength(f)
+		dSize := d.getDataSize(f)
 		if dSize != expectedDSize {
 			t.Errorf("%v: expect data length %d, got %d", tt, expectedDSize, dSize)
 		}

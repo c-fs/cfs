@@ -66,6 +66,16 @@ func TestPartlyReadBlock(t *testing.T) {
 	}
 }
 
+func BenchmarkBlockWrite(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		f, _ := os.OpenFile(
+			path.Join(os.TempDir(), tmpTestFile),
+			os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
+		writeBlock(f, newBlock(), i)
+		defer os.Remove(tmpTestFile)
+	}
+}
+
 func TestCRCErrCheck(t *testing.T) {
 	tests := []struct {
 		fileSize int

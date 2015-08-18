@@ -39,12 +39,23 @@ func (b *Block) GetPayload() []byte {
 }
 
 // Copy copies a byte array to the offset of the buffer
-// It also updates
+// It also updates the effective payload offsets
 func (b *Block) Copy(offset int, from []byte) int {
 	copied := copy(b.buf[offset:], from)
-	b.left = min(b.left, offset)
-	b.right = max(b.right, offset+copied)
+	b.StartFrom(min(b.left, offset))
+	b.EndAt(max(b.right, offset+copied))
 	return copied
+}
+
+// StartFrom sets the block's left offset
+func (b *Block) StartFrom(offset int) {
+	b.left = offset
+}
+
+
+// EndAt sets the block's right offset
+func (b *Block) EndAt(offset int) {
+	b.right = offset
 }
 
 // GetCRC calculates the crc of the effective payload
@@ -60,15 +71,15 @@ func (b *Block) IsPartial() bool {
 // Merge uses current block as a base and
 // merges another block on top of it
 func (b *Block) Merge(toMerge *Block) {
-	b.left = min(b.left, toMerge.left)
-	b.right = max(b.right, toMerge.right)
+	b.StartFrom(min(b.left, toMerge.left))
+	b.EndAt(max(b.right, toMerge.right))
 	copy(b.buf[toMerge.left:toMerge.right], toMerge.GetPayload())
 }
 
 // Reset resets the effective payload to 0
 func (b *Block) Reset() {
-	b.left = 0
-	b.right = 0
+	b.StartFrom(0)
+	b.EndAt(0)
 }
 
 func newBlock() *Block {
@@ -107,7 +118,7 @@ func readBlock(f io.ReadSeeker, b *Block, index int) error {
 	}
 	crc := binary.BigEndian.Uint32(crcBuf)
 	v, err := f.Read(b.buf)
-	b.right = v
+	b.EndAt(v)
 	if err != nil {
 		return err
 	}

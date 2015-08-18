@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 	"path"
-//	"github.com/qiniu/log"
 )
 
 // TODO: interface?
@@ -15,21 +14,6 @@ type Disk struct {
 	// Usually it is the mount point of a disk or a directory
 	// under the mount point.
 	Root string
-}
-
-type BlockReaderStream struct {
-	blockIndex int
-	blockOffset int
-	file io.ReadSeeker
-}
-
-func (brs *BlockReaderStream) NextBlock() (*Block, error) {
-	block := newBlock()
-	err := readBlock(brs.file, block, brs.blockIndex)
-	block.left = brs.blockOffset
-	brs.blockOffset = 0
-	brs.blockIndex += 1
-	return block, err
 }
 
 // ReadAt reads up to len(p) bytes starting at byte offset off
@@ -70,38 +54,8 @@ func (d *Disk) ReadAt(name string, p []byte, off int64) (int, error) {
 	}
 }
 
-type BlockWriterStream struct {
-	blockOffset int
-	data []byte
-	file io.ReadWriteSeeker
-}
-
-// NextBlock gets the next block from the input stream
-func (bws *BlockWriterStream) NextBlock() (*Block, error) {
-	block := newBlock()
-	block.right = 0
-	// if this is a full block, return it
-	if bws.blockOffset == 0 && len(bws.data) >= payloadSize {
-		block.buf = bws.data[:payloadSize]
-		block.right = payloadSize
-		bws.data = bws.data[payloadSize:]
-		return block, nil
-	}
-	// if this is a partial block, copy data into it
-	payloadLen := payloadSize - bws.blockOffset
-	block.left = bws.blockOffset
-	if len(bws.data) > payloadLen {
-		block.Copy(bws.blockOffset, bws.data[:payloadLen])
-		bws.data = bws.data[payloadLen:]
-	} else {
-		block.Copy(bws.blockOffset, bws.data)
-		bws.data = nil
-	}
-	bws.blockOffset = 0
-	return block, nil
-}
-
-func (d *Disk) getDataLength(f *os.File) int {
+// getDataSize returns the size of data in file (excluding the crc header size)
+func (d *Disk) getDataSize(f *os.File) int {
 	fi, err := f.Stat()
 	if err != nil {
 		return 0
@@ -110,7 +64,6 @@ func (d *Disk) getDataLength(f *os.File) int {
 	blockNum := (s + blockSize - 1) / blockSize
 	return s - blockNum*crc32Len
 }
-
 
 // WriteAt writes len(p) bytes to the File starting at byte offset off.
 // It returns the number of bytes written and an error, if any. WriteAt
@@ -127,7 +80,7 @@ func (d *Disk) WriteAt(name string, p []byte, off int64) (int, error) {
 		return 0, err
 	}
 	defer f.Close()
-	fileDataLength := d.getDataLength(f)
+	fileDataLength := d.getDataSize(f)
 	index, offset := blockIndexAndOffset(dataOffset)
 	fileDataIndex, _ := blockIndexAndOffset(fileDataLength)
 	currentIndex := fileDataIndex
