@@ -1,0 +1,5 @@
+# Use goreman to run:
+# `go get github.com/mattn/goreman`
+cfs0: docker run --volume=/:/rootfs:ro --volume=/var/run:/var/run:rw --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:ro --volume=/tmp:/tmp:rw --volume=${PWD}/cfs0_0:/cfs0_0 --volume=${PWD}/cfs0_1:/cfs0_1 --volume=${PWD}/config:/config --publish=5000:15524 -i --name=cfs0 c-fs/cfs --config=/config/cfs0.conf
+cfs1: docker run --volume=/:/rootfs:ro --volume=/var/run:/var/run:rw --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:ro --volume=/tmp:/tmp:rw --volume=${PWD}/cfs1_0:/cfs1_0 --volume=${PWD}/cfs1_1:/cfs1_1 --volume=${PWD}/config:/config --publish=5001:15524 -i --name=cfs1 c-fs/cfs --config=/config/cfs1.conf
+cfs2: docker run --volume=/:/rootfs:ro --volume=/var/run:/var/run:rw --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:ro --volume=/tmp:/tmp:rw --volume=${PWD}/cfs2_0:/cfs2_0 --volume=${PWD}/cfs2_1:/cfs2_1 --volume=${PWD}/config:/config --publish=5002:15524 -i --name=cfs2 c-fs/cfs --config=/config/cfs2.conf

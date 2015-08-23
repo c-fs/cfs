@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"io/ioutil"
 	"net"
 
@@ -14,15 +15,17 @@ import (
 )
 
 func main() {
-	configfn := "default.conf"
-	data, err := ioutil.ReadFile(configfn)
+	configfn := flag.String("config", "default.conf", "location of configuration file")
+	flag.Parse()
+
+	data, err := ioutil.ReadFile(*configfn)
 	if err != nil {
-		log.Fatalf("server: cannot load configuration file[%s] (%v)", configfn, err)
+		log.Fatalf("server: cannot load configuration file[%s] (%v)", *configfn, err)
 	}
 
 	var conf config.Server
 	if _, err := toml.Decode(string(data), &conf); err != nil {
-		log.Fatalf("server: configuration file[%s] is not valid (%v)", configfn, err)
+		log.Fatalf("server: configuration file[%s] is not valid (%v)", *configfn, err)
 	}
 
 	// default is that cfs is bootstrapped using docker
