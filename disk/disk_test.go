@@ -2,39 +2,40 @@ package disk
 
 import (
 	"bytes"
-	"os"
 	"io"
+	"os"
 	"path"
 	"testing"
 )
 
-func fillPattern(buf []byte, fillLen int64) {
-	for i := int64(0); i < fillLen; i++ {
-		buf[i] = testFilePattern[i%int64(len(testFilePattern))]
+func fillPattern(buf []byte, fillLen int) {
+	for i := 0; i < fillLen; i++ {
+		buf[i] = testFilePattern[i%len(testFilePattern)]
 	}
 }
 
-func setUpDiskTestFile(fileName string, length int64, blockSize int64, t *testing.T) *os.File {
+func setUpDiskTestFile(fileName string, length int, t *testing.T) *os.File {
 	f, err := os.OpenFile(fileName, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	if err != nil {
 		t.Fatalf("open tmp test file got error: %v", err)
 		return nil
 	}
 
-	payloadSize := blockSize - crc32Len
-	b := make([]byte, payloadSize)
-	index := int64(0)
+	index := 0
 	fillLen := payloadSize
+	b := make([]byte, payloadSize)
 	fillPattern(b, fillLen)
-
 	for length > 0 {
 		if length < payloadSize {
 			fillLen = length
 		}
-		if err := writeBlock(f, index, blockSize, b[:fillLen]); err != nil {
+		block := newBlock()
+		block.right = 0
+		block.Copy(0, b[:fillLen])
+		if err := writeBlock(f, block, index); err != nil {
 			t.Fatalf("write tmp test file got error: %v", err)
 		}
-		length = length - payloadSize
+		length = length - fillLen
 		index++
 	}
 	return f
@@ -50,74 +51,73 @@ func newTestDisk(name, root string, mkdir bool) *Disk {
 
 func TestReadWriteDisk(t *testing.T) {
 	tests := []struct {
-		dataSize  int64
-		blockSize int64
-		offSet    int64
-		writeLen  int64
+		offSet   int
+		fileSize int
+		writeLen int
 	}{
 		// zero write
-		{0, 4096, 0, 0},
+		{0, 0, 0},
 		// empty file write one block
-		{0, 4096, 0, 4096 - crc32Len},
+		{0, 0, payloadSize},
 		// empty file write two blocks
-		{0, 4096, 0, (4096 - crc32Len) * 2},
+		{0, 0, payloadSize * 2},
 		// empty file write three and half blocks
-		{0, 4096, 0, 4096*3 + 2048},
+		{0, 0, int(3.5 * float32(payloadSize))},
 		// empty file write half block,
-		{0, 4096, 0, 2048},
+		{0, 0, int(.5 * float32(payloadSize))},
 		// empty file add padding
-		{0, 4096, 4096, 4096*2 + 2048},
-		// one block file write one block
-		{4096 - crc32Len, 4096, 4096 - crc32Len, 4096 - crc32Len},
-		// one block file write two blocks
-		{4096 - crc32Len, 4096, 4096 - crc32Len, (4096 - crc32Len) * 2},
-		// one block file write three and half blocks
-		{4096 - crc32Len, 4096, 4096 - crc32Len, 4096*3 + 2048},
+		{0, 100, payloadSize * 2},
 		// one block file write half block
-		{4096 - crc32Len, 4096, 4096 - crc32Len, 2048},
+		{payloadSize, payloadSize, int(float64(payloadSize) * .5)},
+		// one block file write one block
+		{payloadSize, payloadSize, payloadSize * 2},
+		// one block file write three and half blocks
+		{payloadSize, payloadSize, int(float64(payloadSize) * 3.5)},
 		// one block file add padding
-		{4096 - crc32Len, 4096, 4096, 4096*2 + 2048},
-		// one block file over write first block
-		{4096 - crc32Len, 4096, 2048, 4096*2 + 2048},
+		{payloadSize * 2, payloadSize, payloadSize},
+		// one block file overwrite first block
+		{0, payloadSize, payloadSize},
 		// two and half blocks file write one block
-		{4096*2 + 2048, 4096, 4096, 4096 - crc32Len},
+		{0, int(float64(payloadSize) * 3.5), payloadSize},
 		// two and half blocks file wirte half block
-		{4096*2 + 2048, 4096, 4096*2 + 2048, 2036},
-		// two and half blocks file write with padding
-		{4096*2 + 2048, 4096, 4096*2 + 4084, 4096 - crc32Len},
+		{
+			int(float64(payloadSize) * 2.5),
+			int(float64(payloadSize) * 2.5),
+			int(float64(payloadSize) * .5),
+		},
 	}
 
 	diskName := "test"
 	diskRoot := "wr"
 	diskMkdir := true
 	diskRemoveAll := true
-	d := newTestDisk(diskName, diskRoot, diskMkdir)
-	defer d.Remove("", diskRemoveAll)
-
 	for i, tt := range tests {
-		f := setUpDiskTestFile(path.Join(d.Root, tmpTestFile), tt.dataSize, tt.blockSize, t)
-		originalDSize := getDataLength(f, tt.blockSize)
-		expectedDSize := int64(max(int(originalDSize), int(tt.offSet+tt.writeLen)))
+		d := newTestDisk(diskName, diskRoot, diskMkdir)
+		defer d.Remove("", diskRemoveAll)
+		f := setUpDiskTestFile(path.Join(d.Root, tmpTestFile),
+			tt.fileSize, t)
+		originalDSize := d.getDataSize(f)
+		expectedDSize := max(originalDSize, tt.offSet+tt.writeLen)
 
 		// write
 		p := make([]byte, tt.writeLen)
-		for i := int64(0); i < tt.writeLen; i++ {
+		for i := 0; i < tt.writeLen; i++ {
 			p[i] = 'X'
 		}
-		wn, err := d.WriteAt(tmpTestFile, p, tt.offSet)
+		wn, err := d.WriteAt(tmpTestFile, p, int64(tt.offSet))
 		if err != nil {
 			t.Errorf("%d: error = %v", i, err)
 		}
 
 		// check data size after write
-		dSize := getDataLength(f, tt.blockSize)
+		dSize := d.getDataSize(f)
 		if dSize != expectedDSize {
-			t.Errorf("%d: expect data length %d, got %d", i, expectedDSize, dSize)
+			t.Errorf("%v: expect data length %d, got %d", tt, expectedDSize, dSize)
 		}
 
 		// read
 		r := make([]byte, tt.writeLen)
-		rn, err := d.ReadAt(tmpTestFile, r, tt.offSet)
+		rn, err := d.ReadAt(tmpTestFile, r, int64(tt.offSet))
 		if err != nil {
 			t.Errorf("%d: error = %v", i, err)
 		}
@@ -138,18 +138,17 @@ func TestReadWriteDisk(t *testing.T) {
 
 func TestReadNonExistFile(t *testing.T) {
 	tests := []struct {
-		diskName  string
-		fileRoot  string
-		fileName  string
-		mkdir     bool
-		blockSize int64
-		offSet    int64
-		readLen   int64
+		diskName string
+		fileRoot string
+		fileName string
+		mkdir    bool
+		offSet   int64
+		readLen  int64
 	}{
 		// read file on non-exist path
-		{"disk0", "nowhere_exist", "no", false, 4096, 0, 50},
+		{"disk0", "nowhere_exist", "no", false, 0, 50},
 		// read non-exist file on exist path
-		{"disk0", "nowhere_exist", "no", true, 4096, 0, 50},
+		{"disk0", "nowhere_exist", "no", true, 0, 50},
 	}
 
 	for i, tt := range tests {
@@ -427,7 +426,6 @@ func TestReadDirNonExist(t *testing.T) {
 
 		d.Remove("", true)
 	}
-
 }
 
 func TestMkDirNonExistParent(t *testing.T) {
@@ -455,23 +453,23 @@ func TestReadEOF(t *testing.T) {
 	tests := []struct {
 		diskName string
 		fileName string
-		writeLen int64
-		readLen  int64
+		writeLen int
+		readLen  int
 	}{
 		{"disk0", "file", 10, 11},
-		{"disk0", "file", 4096 * 2, 4096 * 2 + 1},
+		// {"disk0", "file", 4096 * 2, 4096 * 2 + 1},
 	}
 
 	for i, tt := range tests {
 		d := newTestDisk(tt.diskName, "mkdir-non-exist-parent", true)
 		p := make([]byte, tt.writeLen)
-		for i := int64(0); i < tt.writeLen; i++ {
+		for i := 0; i < tt.writeLen; i++ {
 			p[i] = 'X'
 		}
 		d.WriteAt(tt.fileName, p, 0)
 		buf := make([]byte, tt.readLen)
 		read, err := d.ReadAt(tt.fileName, buf, 0)
-		if int64(read) != tt.writeLen {
+		if read != tt.writeLen {
 			t.Errorf("%d: read %d bytes != %d bytes written", i, read, tt.readLen)
 		}
 		if err != io.EOF {

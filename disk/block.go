@@ -10,101 +10,152 @@ import (
 
 var (
 	crc32cTable = crc32.MakeTable(crc32.Castagnoli)
-	crc32Len    = int64(4)
+	crc32Len    = 4
+	blockSize   = 4096
+	payloadSize = blockSize - crc32Len
+
 	// ErrPayloadSizeTooLarge indicates the input payload size is too big
 	ErrPayloadSizeTooLarge = errors.New("disk: bad payload size")
 	// ErrBadCRC indicates there is not CRC can be found in the block
 	ErrBadCRC = errors.New("disk: not a valid CRC")
 )
 
-// readBlock reads a full or partial block into p from rs. len(p) must be smaller than (bs - crc32Len).
-// The checksum of the block is calculated and verified.
-// ErrBadCRC is returned if the checksum is invalid.
-func readBlock(rs io.ReadSeeker, p []byte, index, bs int64) (int64, error) {
-	payloadLen := int(bs - crc32Len)
-	if len(p) > payloadLen {
-		return 0, ErrPayloadSizeTooLarge
-	}
-	b := make([]byte, crc32Len)
-
-	_, err := rs.Seek(index*bs, os.SEEK_SET)
-	if err != nil {
-		return 0, err
-	}
-
-	n, err := rs.Read(b)
-	// Cannot read full crc
-	if n > 0 && n < 4 {
-		return 0, ErrBadCRC
-	}
-	if err != nil {
-		return 0, err
-	}
-
-	crc := binary.BigEndian.Uint32(b)
-	if len(p) == payloadLen {
-		// fast path for reading into a buffer of payload size
-		n, err = rs.Read(p)
-		if err != nil{
-			return int64(n), err
-		}
-		// Invalid crc
-		if crc != crc32.Checksum(p[:n], crc32cTable) {
-			return 0, ErrBadCRC
-		}
-		return int64(n), nil
-	} else {
-		// p is smaller than payload size
-		// read into another buffer (so we can compare full block CRC) and copy into p
-		buf := make([]byte, payloadLen)
-		n, err = rs.Read(buf)
-		// If there is an eof returned, two cases may happen
-		// 1. n < len(p) -- we don't have enough data to
-		// fill into p, we should return the eof
-		// 2. n >= len(p) -- we have enough data to fill
-		// into p, shoudln't return the eof
-		if err == io.EOF && n >= len(p){
-			err = nil
-		}
-		if err != nil{
-			return int64(copy(p, buf[:n])), err
-		}
-		if crc != crc32.Checksum(buf[:n], crc32cTable) {
-			return 0, ErrBadCRC
-		}
-		return int64(copy(p, buf[:n])), nil
-	}
+// Block is a buffer aligned with disk data block with two offset (left and right)
+// representing the start and end of the effective payload inside the buffer
+type Block struct {
+	buf   []byte
+	left  int
+	right int
 }
 
-// writeBlock writes a full or partial block into ws. len(p) must be smaller than (bs - crc32Len).
-// Each block contains a crc32Len bytes crc32c of the payload and a (bs-crc32Len)
-// bytes payload. Any error encountered is returned.
-// It is caller's responsibility to ensure that only the last block in the file has
-// len(p) < bs - crc32Len
-func writeBlock(ws io.WriteSeeker, index, bs int64, p []byte) error {
-	if int64(len(p)) > bs-crc32Len {
+// IsEmpty tells if the buffer's effective payload is empty
+func (b *Block) IsEmpty() bool {
+	return b.left == b.right
+}
+
+// Payload returns the effective payload as a byte array
+func (b *Block) Payload() []byte {
+	return b.buf[b.left:b.right]
+}
+
+// Copy copies a byte array to the offset of the buffer
+// It also updates the effective payload offsets
+func (b *Block) Copy(offset int, from []byte) int {
+	copied := copy(b.buf[offset:], from)
+	b.StartFrom(min(b.left, offset))
+	b.EndAt(max(b.right, offset+copied))
+	return copied
+}
+
+// StartFrom sets the block's left offset
+func (b *Block) StartFrom(offset int) {
+	b.left = offset
+}
+
+// EndAt sets the block's right offset
+func (b *Block) EndAt(offset int) {
+	b.right = offset
+}
+
+// CRC calculates the crc of the effective payload
+func (b *Block) CRC() uint32 {
+	return crc32.Checksum(b.buf[b.left:b.right], crc32cTable)
+}
+
+// IsPartial checks if effective payload is a partial payload
+func (b *Block) IsPartial() bool {
+	return !(b.left == 0 && b.right == payloadSize)
+}
+
+// Merge uses current block as a base and
+// merges another block on top of it
+func (b *Block) Merge(toMerge *Block) {
+	b.StartFrom(min(b.left, toMerge.left))
+	b.EndAt(max(b.right, toMerge.right))
+	copy(b.buf[toMerge.left:toMerge.right], toMerge.Payload())
+}
+
+// Reset resets the effective payload to 0
+func (b *Block) Reset() {
+	b.StartFrom(0)
+	b.EndAt(0)
+}
+
+func newBlock() *Block {
+	return &Block{make([]byte, payloadSize), 0, payloadSize}
+}
+
+func seekToIndex(s io.Seeker, index int) error {
+	_, err := s.Seek(int64(index*blockSize), os.SEEK_SET)
+	return err
+}
+
+func seekToOffset(s io.Seeker, offset int) error {
+	_, err := s.Seek(int64(offset), os.SEEK_CUR)
+	return err
+}
+
+func blockIndexAndOffset(dataOffset int) (int, int) {
+	index := dataOffset / payloadSize
+	offset := dataOffset - index*payloadSize
+	return index, offset
+}
+
+func readBlock(f io.ReadSeeker, b *Block, index int) error {
+	b.Reset()
+	if err := seekToIndex(f, index); err != nil {
+		return err
+	}
+	buf := make([]byte, blockSize)
+	n, err := f.Read(buf)
+	// Cannot read full crc
+	if n > 0 && n < 4 {
+		return ErrBadCRC
+	}
+	if err != nil {
+		return err
+	}
+	crc := binary.BigEndian.Uint32(buf[:crc32Len])
+	v := copy(b.buf, buf[crc32Len:n])
+	b.EndAt(v)
+	// Invalid crc
+	if crc != b.CRC() {
+		return ErrBadCRC
+	}
+	return nil
+}
+
+func writeBlock(f io.WriteSeeker, b *Block, index int) error {
+	if b.right > payloadSize {
 		return ErrPayloadSizeTooLarge
 	}
-
-	// seek to the beginning of the block
-	_, err := ws.Seek(index*bs, os.SEEK_SET)
-	if err != nil {
+	if b.left != 0 {
+		panic("block is not left aligned")
+	}
+	if err := seekToIndex(f, index); err != nil {
 		return err
 	}
 
-	// write crc32c
-	// TODO: reuse buffer
-	b := make([]byte, crc32Len)
-	binary.BigEndian.PutUint32(b, crc32.Checksum(p, crc32cTable))
-	_, err = ws.Write(b)
-	if err != nil {
-		return err
-	}
-
-	// write payload
-	_, err = ws.Write(p)
+	crcBuf := make([]byte, crc32Len+len(b.Payload()))
+	binary.BigEndian.PutUint32(crcBuf, b.CRC())
+	copy(crcBuf[crc32Len:], b.Payload())
+	_, err := f.Write(crcBuf)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func min(a, b int) int {
+	if a > b {
+		return b
+	}
+	return a
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
