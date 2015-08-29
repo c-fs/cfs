@@ -10,6 +10,7 @@ install:
   - go get -u github.com/spf13/cobra
   - go get -u golang.org/x/net/context
   - go get -u github.com/codahale/metrics
+  - go get -u github.com/influxdb/influxdb/client
   - go get -u google.golang.org/grpc
   - curl -o cadvisor-0.16.0.1.zip https://codeload.github.com/google/cadvisor/zip/0.16.0.1
   - unzip cadvisor-0.16.0.1.zip >/dev/null
@@ -18,4 +19,4 @@ install:
   - export GOPATH="$GOPATH:$GOPATH/src/github.com/google/cadvisor/Godeps/_workspace"
 
 script:
- - make test
+  - make test
