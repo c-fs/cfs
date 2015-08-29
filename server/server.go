@@ -38,7 +38,7 @@ func (s *server) Write(ctx context.Context, req *pb.WriteRequest) (*pb.WriteRepl
 		return &pb.WriteReply{}, nil
 	}
 
-	stats.Counter("cfs_write_ops_total").Disk(dn).Client(req.Header.ClientID).Add()
+	stats.Counter(dn, "write").Client(req.Header.ClientID).Add()
 	n, err := d.WriteAt(fn, req.Data, req.Offset)
 	// TODO: add error
 	if err != nil {
@@ -66,7 +66,7 @@ func (s *server) Read(ctx context.Context, req *pb.ReadRequest) (*pb.ReadReply, 
 		return &pb.ReadReply{}, nil
 	}
 
-	stats.Counter("cfs_read_ops_total").Disk(dn).Client(req.Header.ClientID).Add()
+	stats.Counter(dn, "read").Client(req.Header.ClientID).Add()
 	// TODO: reuse buffer
 	data := make([]byte, req.Length)
 	n, err := d.ReadAt(fn, data, req.Offset)
@@ -109,7 +109,7 @@ func (s *server) Rename(ctx context.Context, req *pb.RenameRequest) (*pb.RenameR
 		return &pb.RenameReply{}, nil
 	}
 
-	stats.Counter("cfs_rename_ops_total").Disk(dn0).Client(req.Header.ClientID).Add()
+	stats.Counter(dn0, "rename").Client(req.Header.ClientID).Add()
 	err = d.Rename(ofn, nfn)
 	if err != nil {
 		log.Infof("server: rename error (%v)", err)
@@ -136,7 +136,7 @@ func (s *server) Remove(ctx context.Context, req *pb.RemoveRequest) (*pb.RemoveR
 		return &pb.RemoveReply{}, nil
 	}
 
-	stats.Counter("cfs_remove_ops_total").Disk(dn).Client(req.Header.ClientID).Add()
+	stats.Counter(dn, "remove").Client(req.Header.ClientID).Add()
 	err = d.Remove(fn, req.All)
 	if err != nil {
 		log.Infof("server: read error (%v)", err)
@@ -164,7 +164,7 @@ func (s *server) ReadDir(ctx context.Context, req *pb.ReadDirRequest) (*pb.ReadD
 		return reply, nil
 	}
 
-	stats.Counter("cfs_readdir_ops_total").Disk(dn).Client(req.Header.ClientID).Add()
+	stats.Counter(dn, "readdir").Client(req.Header.ClientID).Add()
 	stats, err := d.ReadDir(fn)
 	if err != nil {
 		log.Infof("server: readDir error (%v)", err)
@@ -201,7 +201,7 @@ func (s *server) Mkdir(ctx context.Context, req *pb.MkdirRequest) (*pb.MkdirRepl
 		log.Infof("server: mkdir error (cannot find disk %s)", dn)
 		return reply, nil
 	}
-	stats.Counter("cfs_mkdir_ops_total").Disk(dn).Client(req.Header.ClientID).Add()
+	stats.Counter(dn, "mkdir").Client(req.Header.ClientID).Add()
 	err = d.Mkdir(fn, req.All)
 	if err != nil {
 		log.Infof("server: mkdir error (%v)", err)

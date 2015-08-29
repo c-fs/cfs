@@ -2,10 +2,10 @@ package enforce
 
 import (
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
+	"github.com/c-fs/cfs/stats"
 	"github.com/codahale/metrics"
 )
 
@@ -48,7 +48,7 @@ func HasQuota(clientID int64) bool {
 	}
 
 	counters, _ := metrics.Snapshot()
-	nops := counters[strconv.FormatInt(clientID, 16)+"_ops"]
+	nops := counters[stats.ClientCounterName(clientID)]
 
 	mu.Lock()
 	defer mu.Unlock()
