@@ -18,6 +18,9 @@ test: go-vet build
 go-vet:
 	@find . -name '*.go' | xargs -L 1 go tool vet
 
+gofmt-check:
+	@test `gofmt -l . | wc -l` -eq 0
+
 .PHONY: proto
 proto:
 	protoc -I proto proto/*.proto --go_out=plugins=grpc:proto
