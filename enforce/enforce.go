@@ -1,7 +1,6 @@
 package enforce
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -33,9 +32,8 @@ func updateOps() {
 	defer mu.Unlock()
 	counters, _ := metrics.Snapshot()
 	for k, v := range counters {
-		var id int64
-		n, err := fmt.Sscanf(k, "%x_ops", &id)
-		if err != nil || n != 1 {
+		id, err := stats.ParseClientCounterName(k)
+		if err != nil {
 			continue
 		}
 		ops[id] = int(v)
