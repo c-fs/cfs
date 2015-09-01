@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strconv"
+	"strings"
 
 	pb "github.com/c-fs/cfs/proto"
 	"github.com/codahale/metrics"
@@ -61,6 +62,11 @@ func (c *CounterType) Add() {
 
 func ClientCounterName(id int64) string {
 	return clientCounterPrefix + strconv.FormatInt(id, 16)
+}
+
+func ParseClientCounterName(name string) (int64, error) {
+	idStr := strings.TrimPrefix(name, clientCounterPrefix)
+	return strconv.ParseInt(idStr, 16, 64)
 }
 
 func Server() pb.StatsServer { return &server{} }
