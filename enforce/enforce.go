@@ -50,7 +50,7 @@ func HasQuota(clientID int64) bool {
 
 	mu.Lock()
 	defer mu.Unlock()
-	return int(nops)-ops[clientID] < quotas[clientID]*flushIntervalSecond
+	return int(nops)-ops[clientID] <= quotas[clientID]*flushIntervalSecond
 }
 
 func SetQuota(clientID int64, quota int) {
