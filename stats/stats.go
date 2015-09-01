@@ -20,7 +20,10 @@ import (
 // 1. cfs process may be in different cpu/memory/etc cgroups
 // 2. the cgroup that includes cfs may have other processes
 // So it hopes that user could take care of it.
-const DefaultContainerName = "/cfs"
+const (
+	DefaultContainerName = "/cfs"
+	clientCounterPrefix  = "client_"
+)
 
 var containerName string
 
@@ -34,28 +37,30 @@ func SetContainerName(name string) { containerName = name }
 type CounterType struct {
 	disk   string
 	client int64
-	name   string
+	op     string
 }
 
-func Counter(name string) CounterType { return CounterType{name: name} }
-
-func (c CounterType) Disk(disk string) CounterType {
-	c.disk = disk
-	return c
+func Counter(disk, op string) *CounterType {
+	return &CounterType{
+		op:   op,
+		disk: disk,
+	}
 }
 
-func (c CounterType) Client(id int64) CounterType {
+func (c *CounterType) Client(id int64) *CounterType {
 	c.client = id
 	return c
 }
 
-func (c CounterType) Add() {
-	var prefix string
-	if c.disk != "" {
-		prefix = c.disk + "_"
+func (c *CounterType) Add() {
+	metrics.Counter(c.disk + "_" + c.op).Add()
+	if c.client != 0 {
+		metrics.Counter(ClientCounterName(c.client)).Add()
 	}
-	metrics.Counter(prefix + c.name).Add()
-	metrics.Counter(strconv.FormatInt(c.client, 16) + "_ops").Add()
+}
+
+func ClientCounterName(id int64) string {
+	return clientCounterPrefix + strconv.FormatInt(id, 16)
 }
 
 func Server() pb.StatsServer { return &server{} }

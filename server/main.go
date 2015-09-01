@@ -4,6 +4,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"net"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/c-fs/cfs/enforce"
@@ -57,6 +58,9 @@ func main() {
 
 	// 0x1234 is the client ID for cfsctl, and its quota is 10 req/sec.
 	enforce.SetQuota(0x1234, 10)
+
+	// TODO report with influxSinker
+	stats.Report(nil, 3*time.Second)
 
 	s := grpc.NewServer()
 	pb.RegisterCfsServer(s, cfs)
