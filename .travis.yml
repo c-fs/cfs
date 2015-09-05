@@ -19,4 +19,6 @@ install:
   - export GOPATH="$GOPATH:$GOPATH/src/github.com/google/cadvisor/Godeps/_workspace"
 
 script:
+  - make gofmt-check
+  - make go-vet
   - make test
