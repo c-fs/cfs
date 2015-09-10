@@ -1,24 +1,16 @@
 language: go
 
 go:
- - 1.4
+ - 1.5.1
+
+env:
+ - GO15VENDOREXPERIMENT=1
 
 install:
-  - go get -u github.com/c-fs/Jerasure
-  - go get -u github.com/BurntSushi/toml
-  - go get -u github.com/qiniu/log
-  - go get -u github.com/spf13/cobra
-  - go get -u golang.org/x/net/context
-  - go get -u github.com/codahale/metrics
-  - go get -u github.com/influxdb/influxdb/client
-  - go get -u google.golang.org/grpc
-  - curl -o cadvisor-0.16.0.1.zip https://codeload.github.com/google/cadvisor/zip/0.16.0.1
-  - unzip cadvisor-0.16.0.1.zip >/dev/null
-  - mkdir -p "$GOPATH/src/github.com/google"
-  - mv cadvisor-0.16.0.1 "$GOPATH/src/github.com/google/cadvisor"
-  - export GOPATH="$GOPATH:$GOPATH/src/github.com/google/cadvisor/Godeps/_workspace"
+ - go get github.com/c-fs/vendor
+ - go get -u github.com/c-fs/Jerasure
 
 script:
-  - make gofmt-check
-  - make go-vet
-  - make test
+ - make gofmt-check
+ - make go-vet
+ - make test
