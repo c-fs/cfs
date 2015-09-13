@@ -35,8 +35,8 @@ cfs depends on [GF-complete](https://github.com/c-fs/gf-complete) and [Jerasure]
 
 For now, to install these packages:
 ``` bash
-go get github.com/c-fs/gf-complete
-go get github.com/c-fs/Jerasure
+go get github.com/c-fs/vendor
+go get -u github.com/c-fs/Jerasure
 ```
 
 TODO: write build/MAKE file
