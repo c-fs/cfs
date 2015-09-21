@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"io/ioutil"
+	"math/rand"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -14,6 +16,10 @@ import (
 	"github.com/qiniu/log"
 	"google.golang.org/grpc"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 func main() {
 	configfn := flag.String("config", "default.conf", "location of configuration file")
@@ -50,7 +56,11 @@ func main() {
 	cfs := NewServer()
 
 	for _, d := range conf.Disks {
-		err = cfs.AddDisk(d.Name, d.Root)
+		name := d.Name
+		if name == "" {
+			name = strconv.FormatInt(rand.Int63(), 16)
+		}
+		err = cfs.AddDisk(name, d.Root)
 		if err != nil {
 			log.Fatalf("server: failed to add disk (%v)", err)
 		}
