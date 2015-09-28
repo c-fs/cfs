@@ -28,6 +28,7 @@ _testmain.go
 /server/cfs0000
 /cfsctl/cfsctl
 /hack/docker-cluster/cfs*
+/bin
 
 # temporary build path
 /proto/gopath
