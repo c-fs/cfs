@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package proto;
+
+service metadata {
+	rpc Disks(DisksRequest) returns (DisksReply);
+}
+
+message DisksRequest {
+}
+
+message Disk {
+	string name = 1;
+}
+
+message DisksReply {
+	repeated Disk disks = 1;
+}
