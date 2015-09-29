@@ -8,7 +8,10 @@ REPO_PATH:=$(ORG_PATH)/cfs
 $(eval TEST := $(shell cd ../../.. && find $(REPO_PATH) -name '*_test.go' |  xargs -L 1 dirname | uniq | sort))
 
 .PHONY: build
-# TODO
+build:
+	mkdir -p bin
+	go build -o bin/cfs ${REPO_PATH}/server
+	go build -o bin/cfsctl ${REPO_PATH}/cfsctl
 
 .PHONY: test
 test: go-vet build

@@ -29,17 +29,19 @@ TODO:
 
 We will **BREAK** everything (data format, API, command line tool, etc.) before 1.0.
 
-## Dependencies
+## Install
 
 cfs depends on [GF-complete](https://github.com/c-fs/gf-complete) and [Jerasure](https://github.com/c-fs/Jerasure/) for erasure coding.
+
+cfs requires that Go version must be 1.5 at minimum.
 
 For now, to install these packages:
 ``` bash
 go get github.com/c-fs/vendor
 go get -u github.com/c-fs/Jerasure
+export GO15VENDOREXPERIMENT=1
+make build
 ```
-
-TODO: write build/MAKE file
 
 ## Play with cfs
 
