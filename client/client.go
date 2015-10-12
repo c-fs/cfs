@@ -9,10 +9,11 @@ import (
 )
 
 type Client struct {
-	header      *pb.RequestHeader
-	grpcConn    *grpc.ClientConn
-	fileClient  pb.CfsClient
-	statsClient pb.StatsClient
+	header         *pb.RequestHeader
+	grpcConn       *grpc.ClientConn
+	metadataClient pb.MetadataClient
+	fileClient     pb.CfsClient
+	statsClient    pb.StatsClient
 }
 
 func New(clientID int64, address string) (*Client, error) {
@@ -21,10 +22,19 @@ func New(clientID int64, address string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	mc := pb.NewMetadataClient(conn)
 	fc := pb.NewCfsClient(conn)
 	sc := pb.NewStatsClient(conn)
 
-	return &Client{header: header, grpcConn: conn, fileClient: fc, statsClient: sc}, nil
+	return &Client{header: header, grpcConn: conn, metadataClient: mc, fileClient: fc, statsClient: sc}, nil
+}
+
+func (c *Client) Disks(ctx context.Context) ([]*pb.Disk, error) {
+	reply, err := c.metadataClient.Disks(ctx, &pb.DisksRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return reply.Disks, nil
 }
 
 func (c *Client) Write(ctx context.Context, name string, offset int64, data []byte, isAppend bool) (int64, error) {

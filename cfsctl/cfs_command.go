@@ -28,6 +28,7 @@ func init() {
 }
 
 func addCommand() {
+	cfsctlCmd.AddCommand(disksCmd)
 	cfsctlCmd.AddCommand(readCmd)
 	cfsctlCmd.AddCommand(writeCmd)
 	cfsctlCmd.AddCommand(renameCmd)

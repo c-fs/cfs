@@ -74,6 +74,7 @@ func main() {
 
 	s := grpc.NewServer()
 	pb.RegisterCfsServer(s, cfs)
+	pb.RegisterMetadataServer(s, &metadataServer{disks: conf.Disks})
 	pb.RegisterStatsServer(s, stats.Server())
 	log.Infof("server: ready to serve clients")
 	s.Serve(lis)
