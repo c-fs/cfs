@@ -55,10 +55,12 @@ func main() {
 
 	cfs := NewServer()
 
-	for _, d := range conf.Disks {
+	for i, d := range conf.Disks {
 		name := d.Name
 		if name == "" {
 			name = strconv.FormatInt(rand.Int63(), 16)
+			// assign name back to conf, so metadataServer could export correct disk info
+			conf.Disks[i].Name = name
 		}
 		err = cfs.AddDisk(name, d.Root)
 		if err != nil {
