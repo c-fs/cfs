@@ -37,6 +37,17 @@ func (c *Client) Disks(ctx context.Context) ([]*pb.Disk, error) {
 	return reply.Disks, nil
 }
 
+func (c *Client) Stat(ctx context.Context, name string) (*pb.FileInfo, error) {
+	reply, err := c.fileClient.Stat(ctx, &pb.StatRequest{
+		Header: c.header,
+		Name:   name,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return reply.FileInfo, nil
+}
+
 func (c *Client) Write(ctx context.Context, name string, offset int64, data []byte, isAppend bool) (int64, error) {
 	reply, err := c.fileClient.Write(
 		ctx,

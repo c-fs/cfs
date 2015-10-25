@@ -31,7 +31,7 @@ func (s *server) Write(ctx context.Context, req *pb.WriteRequest) (*pb.WriteRepl
 		log.Infof("server: write error (%v)", err)
 		return &pb.WriteReply{}, nil
 	}
-
+	log.Infof("Writing (%v)", req)
 	d := s.Disk(dn)
 	if d == nil {
 		log.Infof("server: write error (cannot find disk %s)", dn)
@@ -46,6 +46,33 @@ func (s *server) Write(ctx context.Context, req *pb.WriteRequest) (*pb.WriteRepl
 		return &pb.WriteReply{}, nil
 	}
 	reply := &pb.WriteReply{BytesWritten: int64(n)}
+	return reply, nil
+}
+
+func (s *server) Stat(ctx context.Context, req *pb.StatRequest) (*pb.StatReply, error) {
+	reply := &pb.StatReply{}
+	dn, fn, err := splitDiskAndFile(req.Name)
+	if err != nil {
+		log.Infof("server: stat error (%v)", err)
+		return &pb.StatReply{}, nil
+	}
+	d := s.Disk(dn)
+	if d == nil {
+		log.Infof("server: stat error (cannot find disk %s)", dn)
+		return &pb.StatReply{}, nil
+	}
+
+	stats.Counter(dn, "stat").Client(req.Header.ClientID).Add()
+	stat, err := d.Stat(fn)
+	if err != nil {
+		log.Infof("server: stat error (%v): %v", req, err)
+		return nil, err
+	}
+	reply.FileInfo = &pb.FileInfo{
+		Name:      stat.Name(),
+		TotalSize: stat.Size(),
+		IsDir:     stat.IsDir(),
+	}
 	return reply, nil
 }
 
@@ -174,8 +201,7 @@ func (s *server) ReadDir(ctx context.Context, req *pb.ReadDirRequest) (*pb.ReadD
 	reply.FileInfos = make([]*pb.FileInfo, len(stats))
 	for i, stat := range stats {
 		reply.FileInfos[i] = &pb.FileInfo{
-			Name: stat.Name(),
-			// TODO: Add size
+			Name:      stat.Name(),
 			TotalSize: stat.Size(),
 			IsDir:     stat.IsDir(),
 		}

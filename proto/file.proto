@@ -4,6 +4,7 @@ package proto;
 
 service cfs {
     rpc Write(WriteRequest) returns (WriteReply);
+    rpc Stat(StatRequest) returns (StatReply);
     rpc Read(ReadRequest) returns (ReadReply);
     rpc Rename(RenameRequest) returns (RenameReply);
     rpc Remove(RemoveRequest) returns (RemoveReply);
@@ -98,11 +99,21 @@ message ReadDirReply {
     repeated FileInfo fileInfos = 2;
 }
 
+message StatRequest {
+    requestHeader header = 1;
+    string name = 2;
+}
+
+message StatReply {
+    Error error = 1;
+    FileInfo fileInfo = 2;
+}
+
 // Remove removes the named file or directory. If there is an error, it will be of type *PathError.
 message RemoveRequest {
     requestHeader header = 1;
     string name = 2;
-    // All removes path and any children it contains. It removes everything it can but returns the first error it 
+    // All removes path and any children it contains. It removes everything it can but returns the first error it
     // encounters. If the path does not exist, RemoveAll returns nil (no error).
     bool all = 3;
 }
@@ -137,7 +148,7 @@ message ReconstructDst {
 
 // http://web.eecs.utk.edu/~plank/plank/papers/2013-02-11-FAST-Tutorial.pdf
 // https://www.usenix.org/legacy/events/fast09/tech/full_papers/plank/plank_html/
-// Optimized for Cauchy Reed-Solomon (CRS) Codes, but should also be applied to 
+// Optimized for Cauchy Reed-Solomon (CRS) Codes, but should also be applied to
 // RAID5 and RAID6
 message ReconstructRequest {
     requestHeader header = 1;

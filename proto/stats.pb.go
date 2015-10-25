@@ -12,10 +12,6 @@ import (
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConn
-
-// Reference imports to suppress errors if they are not otherwise used.
 var _ = proto1.Marshal
 
 type ContainerInfoRequest struct {
@@ -65,8 +61,9 @@ func (m *Metric) Reset()         { *m = Metric{} }
 func (m *Metric) String() string { return proto1.CompactTextString(m) }
 func (*Metric) ProtoMessage()    {}
 
-func init() {
-}
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
 
 // Client API for Stats service
 
