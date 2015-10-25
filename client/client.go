@@ -18,7 +18,7 @@ type Client struct {
 
 func New(clientID int64, address string) (*Client, error) {
 	header := &pb.RequestHeader{ClientID: clientID}
-	conn, err := grpc.Dial(address)
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}

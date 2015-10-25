@@ -23,12 +23,21 @@ kubectl describe rc cfs
 kubectl describe pods --selector=name=cfs
 ```
 
-Check cfs server in the pod is ready:
-[TODO: read and write from one cfs server]
+Check cfs server in the pod with 'cfs' prefix is ready:
 
 ```
 kubectl logs cfs-xxxxx
 ```
+
+Write and read to the running cfs server:
+
+```
+// get the disk name
+kubectl exec -ti cfs-xxxxx -- /cfsctl disks
+kubectl exec -ti cfs-xxxxx -- /cfsctl write --name "%DISK_NAME%/foo" --data "bar"
+kubectl exec -ti cfs-xxxxx -- /cfsctl read --name "%DISK_NAME%/foo" --length 100
+```
+
 
 ## Scale up
 
