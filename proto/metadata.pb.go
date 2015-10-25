@@ -12,10 +12,6 @@ import (
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConn
-
-// Reference imports to suppress errors if they are not otherwise used.
 var _ = proto1.Marshal
 
 type DisksRequest struct {
@@ -48,8 +44,9 @@ func (m *DisksReply) GetDisks() []*Disk {
 	return nil
 }
 
-func init() {
-}
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
 
 // Client API for Metadata service
 

@@ -151,6 +151,15 @@ func (d *Disk) ReadDir(name string) ([]os.FileInfo, error) {
 	return f.Readdir(0)
 }
 
+func (d *Disk) Stat(name string) (os.FileInfo, error) {
+	name = path.Join(d.Root, name)
+	f, err := os.Stat(name)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
 func (d *Disk) Mkdir(name string, all bool) error {
 	name = path.Join(d.Root, name)
 	if !all {

@@ -24,6 +24,8 @@ It has these top-level messages:
 	RenameReply
 	ReadDirRequest
 	ReadDirReply
+	StatRequest
+	StatReply
 	RemoveRequest
 	RemoveReply
 	MkdirRequest
@@ -41,10 +43,6 @@ import (
 	context "golang.org/x/net/context"
 	grpc "google.golang.org/grpc"
 )
-
-// Reference imports to suppress errors if they are not otherwise used.
-var _ context.Context
-var _ grpc.ClientConn
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto1.Marshal
@@ -261,6 +259,45 @@ func (m *ReadDirReply) GetFileInfos() []*FileInfo {
 	return nil
 }
 
+type StatRequest struct {
+	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
+	Name   string         `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+}
+
+func (m *StatRequest) Reset()         { *m = StatRequest{} }
+func (m *StatRequest) String() string { return proto1.CompactTextString(m) }
+func (*StatRequest) ProtoMessage()    {}
+
+func (m *StatRequest) GetHeader() *RequestHeader {
+	if m != nil {
+		return m.Header
+	}
+	return nil
+}
+
+type StatReply struct {
+	Error    *Error    `protobuf:"bytes,1,opt,name=error" json:"error,omitempty"`
+	FileInfo *FileInfo `protobuf:"bytes,2,opt,name=fileInfo" json:"fileInfo,omitempty"`
+}
+
+func (m *StatReply) Reset()         { *m = StatReply{} }
+func (m *StatReply) String() string { return proto1.CompactTextString(m) }
+func (*StatReply) ProtoMessage()    {}
+
+func (m *StatReply) GetError() *Error {
+	if m != nil {
+		return m.Error
+	}
+	return nil
+}
+
+func (m *StatReply) GetFileInfo() *FileInfo {
+	if m != nil {
+		return m.FileInfo
+	}
+	return nil
+}
+
 // Remove removes the named file or directory. If there is an error, it will be of type *PathError.
 type RemoveRequest struct {
 	Header *RequestHeader `protobuf:"bytes,1,opt,name=header" json:"header,omitempty"`
@@ -431,13 +468,15 @@ func (m *ReconstructReply) GetError() *Error {
 	return nil
 }
 
-func init() {
-}
+// Reference imports to suppress errors if they are not otherwise used.
+var _ context.Context
+var _ grpc.ClientConn
 
 // Client API for Cfs service
 
 type CfsClient interface {
 	Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteReply, error)
+	Stat(ctx context.Context, in *StatRequest, opts ...grpc.CallOption) (*StatReply, error)
 	Read(ctx context.Context, in *ReadRequest, opts ...grpc.CallOption) (*ReadReply, error)
 	Rename(ctx context.Context, in *RenameRequest, opts ...grpc.CallOption) (*RenameReply, error)
 	Remove(ctx context.Context, in *RemoveRequest, opts ...grpc.CallOption) (*RemoveReply, error)
@@ -456,6 +495,15 @@ func NewCfsClient(cc *grpc.ClientConn) CfsClient {
 func (c *cfsClient) Write(ctx context.Context, in *WriteRequest, opts ...grpc.CallOption) (*WriteReply, error) {
 	out := new(WriteReply)
 	err := grpc.Invoke(ctx, "/proto.cfs/Write", in, out, c.cc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cfsClient) Stat(ctx context.Context, in *StatRequest, opts ...grpc.CallOption) (*StatReply, error) {
+	out := new(StatReply)
+	err := grpc.Invoke(ctx, "/proto.cfs/Stat", in, out, c.cc, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -511,6 +559,7 @@ func (c *cfsClient) Mkdir(ctx context.Context, in *MkdirRequest, opts ...grpc.Ca
 
 type CfsServer interface {
 	Write(context.Context, *WriteRequest) (*WriteReply, error)
+	Stat(context.Context, *StatRequest) (*StatReply, error)
 	Read(context.Context, *ReadRequest) (*ReadReply, error)
 	Rename(context.Context, *RenameRequest) (*RenameReply, error)
 	Remove(context.Context, *RemoveRequest) (*RemoveReply, error)
@@ -528,6 +577,18 @@ func _Cfs_Write_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, 
 		return nil, err
 	}
 	out, err := srv.(CfsServer).Write(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func _Cfs_Stat_Handler(srv interface{}, ctx context.Context, codec grpc.Codec, buf []byte) (interface{}, error) {
+	in := new(StatRequest)
+	if err := codec.Unmarshal(buf, in); err != nil {
+		return nil, err
+	}
+	out, err := srv.(CfsServer).Stat(ctx, in)
 	if err != nil {
 		return nil, err
 	}
@@ -601,6 +662,10 @@ var _Cfs_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Write",
 			Handler:    _Cfs_Write_Handler,
+		},
+		{
+			MethodName: "Stat",
+			Handler:    _Cfs_Stat_Handler,
 		},
 		{
 			MethodName: "Read",
